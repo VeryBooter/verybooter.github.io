@@ -66,15 +66,35 @@ async function fixture(hash = "", { blocked = false, reduced = true } = {}) {
   return { dom, w, $: (selector) => w.document.querySelector(selector) };
 }
 
-test("all thirteen exhibits remain usable without WebGL and restore focus", async () => {
+test("all twelve exhibits remain usable without WebGL and restore focus", async () => {
   const { dom, w, $ } = await fixture();
   assert.equal(w.galleryDiagnostics().webgl, false);
-  assert.equal(w.document.querySelectorAll("[data-project]").length, 13);
+  assert.equal(w.document.querySelectorAll("[data-project]").length, 12);
   assert.equal($("#doors").hidden, true);
   for (const project of projects) {
     const button = $(`[data-project="${project.id}"]`);
     button.focus();
     button.click();
+    if (project.presentation === "effect") {
+      assert.equal($("#project-dialog").open, false);
+      assert.equal(w.galleryDiagnostics().state, "gallery");
+      continue;
+    }
+    if (project.presentation === "display") {
+      assert.equal($("#exhibit-actions").hidden, false);
+      assert.equal($("#project-dialog").open, false);
+      $("#end-exhibit").click();
+      await new Promise((resolve) => setTimeout(resolve, 10));
+      continue;
+    }
+    if (project.id === "house") {
+      $("#inspect-chip").click();
+      $("#read-story").click();
+    }
+    if (project.id === "games") {
+      $("#game-buttons button").click();
+      await new Promise((resolve) => setTimeout(resolve, 10));
+    }
     assert.equal($("#project-dialog").open, true);
     assert.equal($("#detail-title").textContent, project.title);
     assert.equal(w.location.hash, `#project/${project.id}`);

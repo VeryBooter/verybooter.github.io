@@ -2,7 +2,7 @@
 
 Personal website of Kevin Li
 
-A Three.js cabinet of curiosities inspired by the accompanying personal design sketches. Thirteen interactive objects connect engineering, software, design, and everyday interests in a stylized classical gallery.
+A Three.js cabinet of curiosities inspired by the accompanying personal design sketches. Twelve interactive objects connect engineering, software, design, and everyday interests in a stylized classical gallery.
 
 ```sh
 npm ci

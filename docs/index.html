@@ -34,8 +34,11 @@
         ></a
       >
       <nav aria-label="Main navigation">
-        <a href="#about">About</a
-        ><a href="#gallery">Gallery <span class="nav-count">13</span></a
+        <span class="nav-pair"
+          ><a href="#about">About</a
+          ><a href="#gallery"
+            >Gallery <span class="nav-count">12</span></a
+          ></span
         ><a href="#contact">Contact <span aria-hidden="true">↗</span></a>
       </nav>
       <button
@@ -127,7 +130,7 @@
         </div>
         <aside class="collection-index" aria-label="Collection index">
           <div class="index-heading">
-            <span>THE EXHIBITS</span><span>01 — 13</span>
+            <span>THE EXHIBITS</span><span id="collection-range">01 — 12</span>
           </div>
           <div id="project-index"></div>
           <p class="index-note">
@@ -162,6 +165,34 @@
       </section>
     </main>
     <div id="object-label" role="status" hidden></div>
+    <div id="transition-effect" aria-hidden="true"></div>
+    <section id="exhibit-actions" aria-label="Exhibit inspection" hidden>
+      <span id="preview-title"></span>
+      <button id="inspect-chip" aria-pressed="false" hidden>
+        Inspect chip
+      </button>
+      <div
+        id="game-buttons"
+        role="group"
+        aria-label="Press a controller button"
+        hidden
+      >
+        <button data-button="0" aria-label="Press controller button A">
+          A
+        </button>
+        <button data-button="1" aria-label="Press controller button B">
+          B
+        </button>
+        <button data-button="2" aria-label="Press controller button X">
+          X
+        </button>
+        <button data-button="3" aria-label="Press controller button Y">
+          Y
+        </button>
+      </div>
+      <button id="read-story">Read the story ↗</button>
+      <button id="end-exhibit">Back to gallery ↙</button>
+    </section>
     <div id="transition" hidden>
       <span id="transition-title"></span
       ><button id="skip-transition">Skip animation →</button
@@ -186,17 +217,24 @@
     </dialog>
     <div id="entrance" hidden>
       <div class="entrance-center">
+        <span class="hello-script" aria-hidden="true">hello</span>
         <svg
           viewBox="0 0 64 64"
           fill="none"
-          aria-label="Kevin Li's single-electron logo"
+          aria-label="Kevin Li's theta logo"
           role="img"
         >
-          <path d="M32 3v9M12 40a23 23 0 1 1 40 0M13 46l19 15 19-15" />
-          <circle cx="32" cy="32" r="7" />
-          <path d="M28 32h8" /></svg
-        ><span>KEVIN LI</span>
+          <path class="logo-top" d="M32 3v9M11 27a21 21 0 0 1 42 0" />
+          <path class="logo-bottom" d="M11 37a21 21 0 0 0 42 0" />
+          <circle class="logo-centre" cx="32" cy="32" r="8" />
+          <path class="logo-bar-left" d="M24 32h8" />
+          <path class="logo-bar-right" d="M40 32h-8" />
+        </svg>
+        <span>KEVIN LI</span>
         <p>A CABINET OF CURIOSITIES</p>
+      </div>
+      <div class="entrance-clouds" aria-hidden="true">
+        <span></span><span></span>
       </div>
       <button id="skip-entrance">Skip entrance →</button>
     </div>

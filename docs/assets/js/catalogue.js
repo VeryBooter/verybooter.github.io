@@ -29,7 +29,7 @@ export const projects = [
   ],
   [
     "drone",
-    "Sakura Drone",
+    "Samsara Drone",
     "Flight, in miniature",
     "Engineering",
     "A different perspective on the everyday.",
@@ -108,15 +108,6 @@ export const projects = [
     "Add the club’s confirmed name, your role, and the games you have made together.",
     "pixels",
   ],
-  [
-    "embedded",
-    "Embedded Systems",
-    "Ideas meet hardware",
-    "Engineering",
-    "When a few signals become something useful.",
-    "Describe your embedded-systems competition experience. Add the confirmed board name, challenge, and what your team built.",
-    "signal",
-  ],
 ].map(
   (
     [id, title, subtitle, category, summary, description, animation],
@@ -132,6 +123,13 @@ export const projects = [
     number: String(index + 1).padStart(2, "0"),
     placeholder: true,
     links: [],
+    presentation: ["photography", "lamp"].includes(id)
+      ? "effect"
+      : id === "drawing"
+        ? "display"
+        : ["house", "games"].includes(id)
+          ? "interactive"
+          : "story",
   }),
 );
 

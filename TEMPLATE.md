@@ -35,7 +35,7 @@ The template makes no award, performance, or competition-result claims. Descript
 - `docs/index.html`: page structure, introduction, atmosphere controls, and native project dialog.
 - `docs/assets/css/`: colors, typography, entrance animation, and responsive layout.
 - `docs/assets/js/catalogue.js`: editable project information.
-- `docs/assets/js/models.js`: procedural room, cabinet, robotic arm, and thirteen object models.
+- `docs/assets/js/models.js`: procedural room, cabinet, robotic arm, and twelve object models.
 - `docs/assets/js/scene.js`: rendering, camera movement, raycasting, weather, and object animations.
 - `docs/assets/js/controller.js`: navigation states and transition cancellation.
 - `docs/assets/js/main.js`: HTML interaction, fragment navigation, and scene integration.
@@ -47,9 +47,9 @@ Fonts are bundled locally through Fontsource. The public site does not request a
 
 ## Controls
 
-The top-right atmosphere control exposes Day/Night lighting, Clear/Cloudy/Rainstorm weather, Motion, and Replay entrance. The entrance lasts 2.7 seconds and plays once per session. Skip is immediately available. Reduced motion bypasses it by default.
+The top-right atmosphere control exposes Day/Night lighting, Clear/Cloudy/Rainstorm weather, Motion, and Replay entrance. The entrance lasts 3.7 seconds and plays once per session. Skip is immediately available. Reduced motion bypasses it by default.
 
-Open the cabinet to select its objects directly, or use the thirteen-item collection index. Transitions last 1.5 seconds, with Skip and Cancel controls. Escape cancels a transition or closes a project. Closing restores focus to the corresponding index item. A URL such as `#project/sailbot` opens its project directly. Browser Back restores the previous view.
+Open the cabinet to select its objects directly, or use the twelve-item collection index. Transitions last 1.5 seconds, with Skip and Cancel controls. Photography and the lamp are effects only, and the original face drawing is displayed directly without a story dialog. The smart-house exhibit supports house/chip inspection; the game controller opens its story after a button press. Escape cancels a transition or closes a project. Closing restores focus to the corresponding index item. A URL such as `#project/sailbot` opens its project directly. Browser Back restores the previous view.
 
 Storage denial does not prevent use. If WebGL is unavailable or its context is lost, the HTML index continues to work. JavaScript is required for project content; the introduction and GitHub contact remain available without it.
 
@@ -69,7 +69,7 @@ npx playwright install chromium
 npm run test:browser
 ```
 
-This uses a separate headless Chromium instance with fresh browser contexts. Screenshots are saved under `artifacts/browser/screenshots/`; failure traces and an HTML report are saved under `artifacts/browser/`. The report is not opened automatically. The tests check real WebGL initialization, page errors, desktop/tablet/phone viewport layouts, all thirteen project dialogs, keyboard focus, and browser history. Browser installation and execution can require environment permission.
+This uses a separate headless Chromium instance with fresh browser contexts. Screenshots are saved under `artifacts/browser/screenshots/`; failure traces and an HTML report are saved under `artifacts/browser/`. The report is not opened automatically. The tests check real WebGL initialization, page errors, desktop/tablet/phone viewport layouts, the twelve exhibits and their distinct presentation modes, keyboard focus, and browser history. Browser installation and execution can require environment permission.
 
 The deployable website is generated into `dist/`. Production preview usually runs at `http://127.0.0.1:4173/`. The 3D code loads separately from the HTML interaction layer, so the index is not dependent on renderer initialization.
 

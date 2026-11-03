@@ -1,6 +1,7 @@
 import * as T from "three";
-import { buildRoom, buildCabinet, palette } from "./models.js";
+import { buildRoom, buildCabinet, palette, positionRobot } from "./models.js";
 import { cameraPose } from "./camera.js";
+import { drawingPosition } from "./exhibit-layout.js";
 
 const ease = (t) => 1 - Math.pow(1 - t, 3);
 const lerp = T.MathUtils.lerp;
@@ -8,7 +9,7 @@ export class GalleryScene {
   constructor(
     canvas,
     projects,
-    { onSelect, onHover, onFailure, onFrame } = {},
+    { onSelect, onHover, onFailure, onFrame, onGameButton } = {},
   ) {
     this.canvas = canvas;
     this.projects = projects;
@@ -16,6 +17,7 @@ export class GalleryScene {
     this.onHover = onHover;
     this.onFailure = onFailure;
     this.onFrame = onFrame;
+    this.onGameButton = onGameButton;
     this.preferences = { theme: "light", weather: "clear", motion: true };
     this.progress = 0;
     this.open = false;
@@ -44,6 +46,16 @@ export class GalleryScene {
     this.raycaster = new T.Raycaster();
     this.room = buildRoom(this.scene);
     this.collection = buildCabinet(this.scene, projects);
+    this.artworkTexture = new T.TextureLoader().load(
+      new URL("../images/face-drawing.png", import.meta.url).href,
+      (texture) => {
+        texture.colorSpace = T.SRGBColorSpace;
+        const artwork =
+          this.collection.exhibits.get("drawing").userData.parts.artwork;
+        artwork.material.map = texture;
+        artwork.material.needsUpdate = true;
+      },
+    );
     this.ambient = new T.HemisphereLight("#fff7e5", "#807561", 2.3);
     this.scene.add(this.ambient);
     this.sun = new T.DirectionalLight("#fff2d2", 3.2);
@@ -129,7 +141,7 @@ export class GalleryScene {
       this.camera.fov = this.mobile ? 42 : 38;
       this.camera.updateProjectionMatrix();
       const drawing = this.collection.exhibits.get("drawing");
-      drawing.position.set(...(this.mobile ? [4, 2.9, -0.4] : [6.3, 3.2, -3]));
+      drawing.position.set(...drawingPosition(this.mobile));
       drawing.userData.basePosition.copy(drawing.position);
       const lamp = this.collection.exhibits.get("lamp");
       lamp.position.x = this.mobile ? -3.9 : -4.5;
@@ -155,6 +167,11 @@ export class GalleryScene {
       this.pointerStart = { x: e.clientX, y: e.clientY };
     };
     this.handleClick = (e) => {
+      if (this.active?.id === "games" && this.pointerStart) {
+        const button = this.pickGameButton(e);
+        if (button !== null) this.onGameButton?.(button);
+        return;
+      }
       if (this.active || !this.pointerStart) return;
       if (
         Math.hypot(
@@ -219,110 +236,237 @@ export class GalleryScene {
     this.onHover?.(null);
   }
   reset() {
-    const { exhibits, shoulder, elbow, beam } = this.collection;
+    const { exhibits, shoulder, elbow, beam, arm, grip, upper, lower, pad } =
+      this.collection;
     for (const object of exhibits.values()) {
+      object.visible = true;
       object.position.copy(object.userData.basePosition);
       object.rotation.copy(object.userData.baseRotation);
       object.scale.copy(object.userData.baseScale);
-      const p = object.userData.parts;
-      if (p.flame) p.flame.visible = false;
-      if (p.light) p.light.intensity = 0;
-      if (p.neck) p.neck.rotation.z = 0;
-      if (p.ingredient) p.ingredient.position.y = 0.4;
-      if (p.arrow) p.arrow.position.set(0, 0.6, 0.3);
-      if (p.satellite) p.satellite.position.set(0.75, 0.95, 0);
-      if (p.lines)
-        p.lines.traverse((child) => {
+      const parts = object.userData.parts;
+      if (parts.flame) parts.flame.visible = false;
+      if (parts.light) parts.light.intensity = 0;
+      if (parts.neck) parts.neck.rotation.z = 0;
+      if (parts.ingredient) parts.ingredient.position.y = 0.65;
+      if (parts.arrow) {
+        parts.arrow.position.set(0, 0.6, 0.3);
+        parts.arrow.rotation.set(0, 0, 0);
+      }
+      if (parts.satellite) {
+        parts.satellite.position.set(0.75, 0.95, 0);
+        parts.satellite.scale.setScalar(1);
+      }
+      if (parts.lines)
+        parts.lines.traverse((child) => {
           if (child.isMesh) child.geometry.setDrawRange(0, Infinity);
         });
-      p.leds?.forEach((led) => {
-        led.material.emissiveIntensity = 0;
+      if (parts.house) {
+        parts.house.visible = false;
+        parts.blueprint.visible = true;
+        parts.chip.visible = false;
+      }
+      parts.buttons?.forEach((button) => {
+        button.position.z = button.userData.restZ;
+        button.scale.setScalar(1);
       });
-      p.buttons?.forEach((b) => b.scale.setScalar(1));
     }
-    shoulder.rotation.z = 0;
-    elbow.rotation.z = 0;
+    arm.rotation.y = 0;
+    shoulder.rotation.z = 0.4;
+    elbow.rotation.z = -1;
+    grip.rotation.set(0, 0, 0);
+    upper.scale.y = 1;
+    upper.position.y = 0.6;
+    elbow.position.set(0, 1.2, 0);
+    lower.scale.y = 1;
+    lower.position.y = 0.525;
+    grip.position.set(0, 1.05, 0);
+    pad.visible = false;
+    this.collection.thumbsUp.visible = false;
     beam.visible = false;
     this.particles.visible = false;
     this.smoke.visible = false;
     this.active = null;
     this.onFrame?.({ effect: null, strength: 0 });
   }
+  presentationTarget(distance = 9) {
+    if (!this.camera) return new T.Vector3(-0.5, 3.5, 3);
+    this.camera.updateWorldMatrix(true, false);
+    const target = this.camera.position
+      .clone()
+      .addScaledVector(
+        this.camera.getWorldDirection(new T.Vector3()),
+        distance,
+      );
+    return this.collection.cabinet.worldToLocal(target);
+  }
+  showHousePhase(phase) {
+    if (this.active?.id === "house") {
+      this.active.phase = phase;
+      this.active.start = performance.now();
+    }
+  }
+  pressGameButton(index) {
+    if (this.active?.id === "games")
+      this.active.pressed = { index, time: performance.now() };
+  }
+  pickGameButton(event) {
+    const rect = this.canvas.getBoundingClientRect();
+    this.raycaster.setFromCamera(
+      new T.Vector2(
+        ((event.clientX - rect.left) / rect.width) * 2 - 1,
+        (-(event.clientY - rect.top) / rect.height) * 2 + 1,
+      ),
+      this.camera,
+    );
+    return (
+      this.raycaster.intersectObjects(
+        this.collection.exhibits.get("games").userData.parts.buttons,
+      )[0]?.object.userData.buttonIndex ?? null
+    );
+  }
   animate(now) {
     if (!this.active) return;
-    const { id, start, motion } = this.active;
-    const item = this.collection.exhibits.get(id);
+    const { id, start, motion } = this.active,
+      item = this.collection.exhibits.get(id);
     if (!item) return;
-    const p = motion ? T.MathUtils.clamp((now - start) / 1500, 0, 1) : 1;
-    const a = ease(Math.min(1, p * 1.7));
-    const parts = item.userData.parts;
-    const base = item.userData.basePosition;
-    item.position.lerpVectors(base, new T.Vector3(-0.5, 3.5, 3), a * 0.8);
-    item.scale.copy(item.userData.baseScale).multiplyScalar(1 + a * 0.9);
+    const p = motion ? T.MathUtils.clamp((now - start) / 1500, 0, 1) : 1,
+      a = ease(Math.min(1, p * 1.7));
+    const parts = item.userData.parts,
+      base = item.userData.basePosition,
+      target = this.presentationTarget();
+    item.position.copy(base);
+    item.rotation.copy(item.userData.baseRotation);
+    item.scale.copy(item.userData.baseScale);
+    const present = (scale = 2) => {
+      item.position.lerpVectors(base, target, a);
+      item.scale.multiplyScalar(1 + a * (scale - 1));
+      if (this.camera) item.lookAt(this.camera.position);
+      // Models are authored from their bases; center the visible artwork, not its origin.
+      item.updateWorldMatrix(true, true);
+      const centre = this.collection.cabinet.worldToLocal(
+        new T.Box3().setFromObject(item).getCenter(new T.Vector3()),
+      );
+      item.position.add(target.clone().sub(centre).multiplyScalar(a));
+    };
     switch (id) {
       case "sailbot":
-        item.position.x = base.x + Math.sin(p * Math.PI) * 4;
-        item.rotation.z = Math.sin(p * Math.PI * 3) * 0.1;
+        present(4);
+        item.position.x += Math.sin(p * Math.PI) * 3;
+        item.rotation.z += Math.sin(p * Math.PI * 3) * 0.08;
+        this.onFrame?.({
+          effect: "sail",
+          strength: Math.sin((Math.max(0, p - 0.35) / 0.65) * Math.PI),
+        });
         break;
-      case "rocket":
-        this.collection.shoulder.rotation.z = -Math.sin(p * Math.PI) * 0.6;
-        this.collection.elbow.rotation.z = Math.sin(p * Math.PI) * 0.7;
-        item.position.y = base.y + Math.pow(p, 2) * 8;
-        parts.flame.visible = p > 0.35;
+      case "rocket": {
+        const pad = new T.Vector3(3.4, 0.4, 2.8);
+        this.collection.pad.visible = true;
+        const carry = T.MathUtils.smoothstep(p, 0.28, 0.6),
+          handTarget = base.clone().lerp(pad, carry);
+        positionRobot(this.collection, handTarget);
+        if (p > 0.28) item.position.copy(handTarget);
+        if (p > 0.6) {
+          item.position.y += Math.pow((p - 0.6) / 0.4, 2) * 11;
+          parts.flame.visible = true;
+        }
         this.animateSmoke(p);
+        this.onFrame?.({
+          effect: "exhaust",
+          strength: T.MathUtils.smoothstep(p, 0.6, 0.95) * 0.86,
+        });
         break;
-      case "house":
-        this.collection.shoulder.rotation.z = -a * 0.65;
-        this.collection.elbow.rotation.z = a * 0.5;
-        item.position.set(
-          lerp(base.x, 3.2, a),
-          lerp(base.y, 3.2, a),
-          lerp(base.z, 2, a),
-        );
-        item.rotation.y = p * 0.8;
+      }
+      case "house": {
+        const chip = this.active.phase === "chip";
+        const carry = T.MathUtils.smoothstep(p, 0.2, 0.8),
+          destination = target.clone().add(new T.Vector3(0, -0.6, 0));
+        const hand = base.clone().lerp(destination, carry);
+        positionRobot(this.collection, hand);
+        item.position.copy(hand);
+        item.scale.multiplyScalar(1 + carry * 1.1);
+        parts.blueprint.visible = !chip && p < 0.65;
+        parts.house.visible = !chip && p >= 0.55;
+        parts.chip.visible = chip;
+        parts.scan.position.y = 0.5 - p;
+        if (chip) {
+          item.rotation.x = 0.65;
+          item.rotation.y = 0.2;
+        } else if (this.camera) item.lookAt(this.camera.position);
         break;
+      }
       case "drone":
+        present(3);
         parts.propellers.forEach((prop) => {
           prop.rotation.y = p * 100;
         });
-        item.position.z = base.z + a * 5;
-        item.position.y += Math.sin(p * Math.PI) * 0.7;
+        item.position.y += Math.sin(p * Math.PI) * 0.3;
         break;
       case "cooking":
-        item.rotation.x = -Math.sin(p * Math.PI * 2) * 0.35;
-        parts.ingredient.position.y = 0.4 + Math.sin(p * Math.PI) * 1.5;
+        present(3);
+        positionRobot(
+          this.collection,
+          item.position.clone().add(new T.Vector3(0.5, 0.35, 0)),
+        );
+        item.rotation.x += Math.sin(p * Math.PI * 2) * 0.1;
+        parts.ingredient.position.y = 0.65 + Math.sin(p * Math.PI) * 0.5;
+        this.collection.grip.rotation.z = p > 0.65 ? -0.7 : 0;
+        this.collection.thumbsUp.visible = p > 0.65;
         break;
       case "voxelcraft":
         item.scale.multiplyScalar(
-          1 + Math.sin(p * Math.PI * 5) * 0.12 * (1 - p),
+          1 + Math.sin(p * Math.PI * 5) * 0.1 * (1 - p),
         );
+        item.visible = p < 0.48 || p >= 1;
         this.animateParticles(item, p);
         break;
-      case "hackathon":
-        parts.arrow.position.x = p * p * 7;
-        this.onFrame?.({ effect: "arrow", strength: Math.sin(p * Math.PI) });
-        break;
-      case "photography":
-        item.rotation.y = Math.sin(p * Math.PI) * 0.5;
+      case "hackathon": {
+        const direction = this.camera
+          ? item
+              .worldToLocal(this.camera.position.clone())
+              .sub(new T.Vector3(0, 0.6, 0.3))
+              .normalize()
+          : new T.Vector3(1, 0, 0);
+        parts.arrow.position
+          .set(0, 0.6, 0.3)
+          .addScaledVector(direction, p * p * 12);
+        parts.arrow.quaternion.setFromUnitVectors(
+          new T.Vector3(1, 0, 0),
+          direction,
+        );
         this.onFrame?.({
-          effect: "aperture",
-          strength: Math.sin(p * Math.PI) * 0.85,
+          effect: "arrow",
+          strength: Math.sin(Math.max(0, p - 0.5) * Math.PI * 2),
         });
+        break;
+      }
+      case "photography":
+        item.rotation.y = Math.sin(p * Math.PI) * 0.2;
+        this.onFrame?.({ effect: "aperture", strength: Math.sin(p * Math.PI) });
         break;
       case "lamp":
         parts.neck.rotation.z = -Math.sin(p * Math.PI) * 0.4;
         parts.light.intensity = Math.sin(p * Math.PI) * 9;
         this.collection.beam.visible = p > 0.2;
         break;
-      case "satellite":
-        parts.satellite.position.set(
+      case "satellite": {
+        const orbit = new T.Vector3(
           Math.cos(p * Math.PI * 3) * 0.9,
           0.7 + Math.sin(p * Math.PI * 3) * 0.6,
           Math.sin(p * Math.PI * 3) * 0.5,
         );
-        item.position.z = base.z + a * 4;
+        const destination = item.worldToLocal(
+          this.collection.cabinet.localToWorld(target.clone()),
+        );
+        parts.satellite.position
+          .copy(orbit)
+          .lerp(destination, T.MathUtils.smoothstep(p, 0.55, 1));
+        parts.satellite.scale.setScalar(
+          1 + T.MathUtils.smoothstep(p, 0.55, 1) * 4,
+        );
         break;
+      }
       case "drawing":
+        present(2.2);
         parts.lines.traverse((child) => {
           if (child.isMesh)
             child.geometry.setDrawRange(
@@ -332,16 +476,12 @@ export class GalleryScene {
         });
         break;
       case "games":
-        parts.buttons.forEach((b, i) => {
-          b.scale.setScalar(1 - Math.sin(p * Math.PI * 6 + i) * 0.3);
-        });
-        this.animateParticles(item, p);
-        break;
-      case "embedded":
-        parts.leds.forEach((led, i) => {
-          led.material.emissiveIntensity = p * 5 > i ? 3 : 0;
-        });
-        item.rotation.x = -a * 0.45;
+        present(3);
+        if (this.active.pressed) {
+          const b = parts.buttons[this.active.pressed.index],
+            press = Math.max(0, 1 - (now - this.active.pressed.time) / 280);
+          b.position.z = b.userData.restZ - press * 0.08;
+        }
         break;
     }
   }
@@ -394,7 +534,7 @@ export class GalleryScene {
     this.look.set(...pose.target);
     this.camera.lookAt(this.look);
     this.collection.cabinet.visible = this.progress > 0.08 || !!this.active;
-    this.room.userData.portrait.visible = this.progress < 0.65;
+    this.room.userData.portrait.visible = this.progress < 0.35;
     const target = this.open ? 1 : 0;
     this.doorAngle = this.preferences.motion
       ? lerp(this.doorAngle, target, Math.min(1, delta * 4))

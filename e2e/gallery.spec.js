@@ -39,7 +39,13 @@ for (const [name, width, height] of [
     await capture(page, `${name}-introduction`);
     const diagnostics = await page.evaluate(() => window.galleryDiagnostics());
     expect(diagnostics.webgl, JSON.stringify(diagnostics)).toBe(true);
-    expect(diagnostics.objects).toBe(13);
+    expect(diagnostics.objects).toBe(projects.length);
+    expect(diagnostics.architecture).toEqual({
+      columns: 2,
+      pediment: true,
+      ornateFrame: true,
+    });
+    await expect(page.locator('[data-project="embedded"]')).toHaveCount(0);
     expect(
       await page.evaluate(() => document.documentElement.scrollWidth),
     ).toBeLessThanOrEqual(width);
@@ -71,10 +77,44 @@ for (const [name, width, height] of [
 test("all exhibits open, close, and restore keyboard focus in a real browser", async ({
   page,
 }) => {
+  // This test includes twelve real-time animations plus inspection screenshots.
+  test.setTimeout(120000);
   await ready(page);
   for (const project of projects) {
     const button = page.locator(`[data-project="${project.id}"]`);
     await button.click();
+    await page.waitForTimeout(500);
+    await capture(page, `${project.id}-transition`);
+    if (project.presentation === "effect") {
+      await expect
+        .poll(() => page.evaluate(() => galleryDiagnostics().state))
+        .toBe("gallery");
+      await expect(page.locator("#project-dialog")).not.toBeVisible();
+      continue;
+    }
+    if (project.presentation === "display") {
+      await expect(page.locator("#exhibit-actions")).toBeVisible();
+      await expect(page.locator("#project-dialog")).not.toBeVisible();
+      await capture(page, "face-drawing-inspection");
+      await page.locator("#end-exhibit").click();
+      continue;
+    }
+    if (project.id === "house") {
+      await expect(page.locator("#exhibit-actions")).toBeVisible();
+      await page.locator("#inspect-chip").click();
+      await expect(page.locator("#inspect-chip")).toHaveAttribute(
+        "aria-pressed",
+        "true",
+      );
+      await page.waitForTimeout(650);
+      await capture(page, "smart-house-chip");
+      await page.locator("#read-story").click();
+    }
+    if (project.id === "games") {
+      await expect(page.locator("#exhibit-actions")).toBeVisible();
+      await capture(page, "controller-inspection");
+      await page.locator("#game-buttons button").first().click();
+    }
     await expect(page.locator("#project-dialog")).toBeVisible();
     await expect(page.locator("#detail-title")).toHaveText(project.title);
     await expect(page).toHaveURL(new RegExp(`#project/${project.id}$`));
@@ -82,6 +122,39 @@ test("all exhibits open, close, and restore keyboard focus in a real browser", a
     await expect(page.locator("#project-dialog")).not.toBeVisible();
     await expect(button).toBeFocused();
   }
+});
+
+test("replayed entrance follows the hello, theta, and parting-cloud sequence", async ({
+  page,
+}) => {
+  const clockStart = Date.now() - 60000;
+  await page.clock.install({ time: clockStart });
+  await ready(page);
+  await page.clock.pauseAt(clockStart + 120000);
+  // Sample each authored CSS-animation stage without depending on screenshot/GPU timing.
+  for (const [name, time] of [
+    ["hello", 450],
+    ["theta", 2200],
+    ["clouds", 2950],
+  ]) {
+    await page.locator(".settings-toggle").click();
+    await page.locator("#replay").click();
+    await expect(page.locator("#entrance")).toBeVisible();
+    await page.locator("#entrance").evaluate((element, time) => {
+      for (const animation of element.getAnimations({ subtree: true })) {
+        animation.pause();
+        animation.currentTime = time;
+      }
+    }, time);
+    await capture(page, `entrance-${name}`);
+    await page.locator("#skip-entrance").click();
+  }
+  await page.locator(".settings-toggle").click();
+  await page.locator("#replay").click();
+  await page.clock.fastForward(3200);
+  await expect(page.locator("#entrance")).toHaveClass("leaving");
+  await page.clock.fastForward(500);
+  await expect(page.locator("#entrance")).not.toBeVisible();
 });
 
 test("project links bypass the entrance and browser Back closes a selected project", async ({

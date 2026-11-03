@@ -23,6 +23,8 @@ let previousFocus;
 let routeOwned = false;
 let cabinetOpen = false;
 let fallback = false;
+let directStory = false;
+let actionTimer;
 const controller = new GalleryController({
   onChange(state, id) {
     document.body.dataset.state = state;
@@ -34,14 +36,30 @@ const controller = new GalleryController({
     }
     if (state === "detail") {
       $("#transition").hidden = true;
-      scene?.reset();
-      renderDetail(getProject(id));
-      if (!dialog.open) dialog.showModal();
-      $("#close-detail").focus({ preventScroll: true });
+      const project = getProject(id);
+      if (project.presentation === "effect") {
+        $("#scene-status").textContent = `${project.title} animation complete.`;
+        if (projectFromHash(location.hash)?.id === id)
+          history.replaceState(null, "", "#gallery");
+        routeOwned = false;
+        controller.back();
+        return;
+      }
+      if (
+        project.presentation === "display" ||
+        (project.presentation === "interactive" && !directStory)
+      ) {
+        if (scene?.active?.id !== id) scene?.select(id, false);
+        showPreview(project);
+        return;
+      }
+      openStory(project);
     }
     if (state === "gallery") {
       if (dialog.open) dialog.close();
       scene?.reset();
+      clearTimeout(actionTimer);
+      $("#exhibit-actions").hidden = true;
       $("#object-label").hidden = true;
       if (previousFocus?.isConnected)
         previousFocus.focus({ preventScroll: true });
@@ -82,6 +100,58 @@ function showLabel(id) {
   if (id)
     label.textContent = `${getProject(id).number} / ${getProject(id).title}`;
 }
+function openStory(project) {
+  $("#exhibit-actions").hidden = true;
+  scene?.reset();
+  renderDetail(project);
+  dialog.classList.toggle("controller-story", project.id === "games");
+  if (!dialog.open) dialog.showModal();
+  $("#close-detail").focus({ preventScroll: true });
+}
+function showPreview(project) {
+  $("#exhibit-actions").hidden = false;
+  $("#preview-title").textContent = project.title;
+  $("#inspect-chip").hidden = project.id !== "house";
+  $("#inspect-chip").textContent = "Inspect chip";
+  $("#inspect-chip").setAttribute("aria-pressed", "false");
+  $("#read-story").hidden = project.id !== "house";
+  $("#game-buttons").hidden = project.id !== "games";
+  if (project.id === "games") {
+    const buttons = [...$("#game-buttons").children];
+    for (let i = buttons.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [buttons[i], buttons[j]] = [buttons[j], buttons[i]];
+    }
+    $("#game-buttons").append(...buttons);
+  }
+  $("#end-exhibit").focus({ preventScroll: true });
+}
+function pressGameButton(index) {
+  if (controller.activeId !== "games" || $("#exhibit-actions").hidden) return;
+  scene?.pressGameButton(index);
+  clearTimeout(actionTimer);
+  actionTimer = setTimeout(
+    () => openStory(getProject("games")),
+    preferences.motion ? 280 : 0,
+  );
+}
+$("#end-exhibit").addEventListener("click", closeProject);
+$("#read-story").addEventListener("click", () =>
+  openStory(getProject(controller.activeId)),
+);
+$("#inspect-chip").addEventListener("click", () => {
+  const chip = $("#inspect-chip").getAttribute("aria-pressed") !== "true";
+  $("#inspect-chip").setAttribute("aria-pressed", String(chip));
+  $("#inspect-chip").textContent = chip ? "Inspect house" : "Inspect chip";
+  scene?.showHousePhase(chip ? "chip" : "house");
+});
+$("#game-buttons")
+  .querySelectorAll("button")
+  .forEach((button) =>
+    button.addEventListener("click", () =>
+      pressGameButton(Number(button.dataset.button)),
+    ),
+  );
 function renderDetail(project) {
   $("#detail-number").textContent = project.number;
   $("#detail-category").textContent = `${project.number} / ${project.category}`;
@@ -105,6 +175,9 @@ function openProject(id, { fromRoute = false, animate = true } = {}) {
   const project = getProject(id);
   if (!project) return;
   finishEntrance();
+  clearTimeout(actionTimer);
+  $("#exhibit-actions").hidden = true;
+  directStory = fromRoute && !animate;
   if (dialog.open) dialog.close();
   if (controller.state !== "transition")
     previousFocus = document.activeElement?.matches("[data-project]")
@@ -114,7 +187,7 @@ function openProject(id, { fromRoute = false, animate = true } = {}) {
   updateDoors();
   gallery.scrollIntoView({ behavior: "instant", block: "start" });
   updateScroll();
-  if (!fromRoute) {
+  if (!fromRoute && project.presentation !== "effect") {
     history.pushState({ galleryProject: true }, "", `#project/${id}`);
     routeOwned = true;
   } else routeOwned = false;
@@ -161,7 +234,8 @@ $("#skip-transition").addEventListener("click", () => controller.finish());
 $("#cancel-transition").addEventListener("click", closeProject);
 document.addEventListener("keydown", (e) => {
   if (e.key === "Escape") {
-    if (controller.state === "transition") closeProject();
+    if (controller.state === "transition" || !$("#exhibit-actions").hidden)
+      closeProject();
     $("#atmosphere").classList.remove("open");
     $(".settings-toggle").setAttribute("aria-expanded", "false");
   }
@@ -278,7 +352,7 @@ function playEntrance() {
   entranceTimer = setTimeout(() => {
     entrance.classList.add("leaving");
     entranceHideTimer = setTimeout(finishEntrance, 500);
-  }, 2200);
+  }, 3200);
 }
 $("#skip-entrance").addEventListener("click", () => {
   finishEntrance();
@@ -300,6 +374,8 @@ function handleFailure(message) {
   $("#doors").hidden = true;
   if (controller.state === "transition") controller.finish();
 }
+$(".nav-count").textContent = projects.length;
+$("#collection-range").textContent = `01 — ${projects.length}`;
 applyPreferences();
 $("#year").textContent = new Date().getFullYear();
 const initialProject = projectFromHash(location.hash);
@@ -313,15 +389,11 @@ try {
     onSelect: (id) => openProject(id),
     onHover: showLabel,
     onFailure: handleFailure,
+    onGameButton: pressGameButton,
     onFrame: ({ effect, strength }) => {
-      $("#scene").style.filter =
-        effect === "arrow" ? `sepia(${strength * 0.5})` : "";
-      $("#scene").style.clipPath =
-        effect === "aperture"
-          ? `circle(${100 - strength * 65}% at 50% 50%)`
-          : effect === "arrow"
-            ? `inset(0 ${strength * 100}% 0 0)`
-            : "";
+      const overlay = $("#transition-effect");
+      overlay.dataset.effect = effect || "";
+      overlay.style.setProperty("--effect", Math.max(0, strength));
     },
   });
   scene.setPreferences(preferences);
@@ -350,5 +422,14 @@ window.galleryDiagnostics = () => ({
           (scene.frameTimes.reduce((a, b) => a + b, 0) /
             scene.frameTimes.length),
       )
+    : null,
+  architecture: scene
+    ? {
+        columns: scene.room.children.filter(
+          (child) => child.name === "outer-column",
+        ).length,
+        pediment: !!scene.room.getObjectByName("triangular-pediment"),
+        ornateFrame: !!scene.room.getObjectByName("ornate-gilt-portrait-frame"),
+      }
     : null,
 });

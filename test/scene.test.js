@@ -2,9 +2,51 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import * as T from "three";
 import { projects } from "../docs/assets/js/catalogue.js";
-import { buildCabinet } from "../docs/assets/js/models.js";
+import {
+  buildCabinet,
+  buildRoom,
+  positionRobot,
+} from "../docs/assets/js/models.js";
 import { GalleryScene } from "../docs/assets/js/scene.js";
+import { drawingPosition } from "../docs/assets/js/exhibit-layout.js";
 import { cameraPose } from "../docs/assets/js/camera.js";
+
+test("revised architecture has two columns, a visible pediment, and a carved frame", () => {
+  const room = buildRoom(new T.Scene());
+  assert.equal(
+    room.children.filter((child) => child.name === "outer-column").length,
+    2,
+  );
+  assert.ok(room.getObjectByName("triangular-pediment"));
+  assert.ok(room.getObjectByName("ornate-gilt-portrait-frame"));
+  for (const compact of [false, true]) {
+    const pose = cameraPose(0, compact),
+      camera = new T.PerspectiveCamera(
+        pose.fov,
+        compact ? 390 / 844 : 1440 / 900,
+        0.1,
+        100,
+      );
+    camera.position.set(...pose.position);
+    camera.lookAt(...pose.target);
+    camera.updateMatrixWorld();
+    const peak = new T.Vector3(0, 11.3, -3.8).project(camera);
+    assert.ok(
+      Math.abs(peak.x) < 1 && Math.abs(peak.y) < 0.85,
+      "triangle peak is inside the introductory view",
+    );
+  }
+});
+
+test("robot gripper reaches shelf objects and the launch plinth", () => {
+  const collection = buildCabinet(new T.Scene(), projects);
+  for (const target of [
+    new T.Vector3(0, 4.94, 0.12),
+    new T.Vector3(2.1, 4.94, 0.12),
+    new T.Vector3(3.4, 0.4, 2.8),
+  ])
+    assert.ok(positionRobot(collection, target).distanceTo(target) < 1e-8);
+});
 
 test("desktop, tablet, and phone camera poses keep every exhibit selectable", () => {
   for (const [width, height] of [
@@ -16,7 +58,7 @@ test("desktop, tablet, and phone camera poses keep every exhibit selectable", ()
     const world = new T.Scene();
     const collection = buildCabinet(world, projects);
     if (mobile) {
-      collection.exhibits.get("drawing").position.set(4, 2.9, -0.4);
+      collection.exhibits.get("drawing").position.set(...drawingPosition(true));
       collection.exhibits.get("lamp").position.x = -3.9;
     }
     const pose = cameraPose(1, mobile);
@@ -50,7 +92,7 @@ test("desktop, tablet, and phone camera poses keep every exhibit selectable", ()
   }
 });
 
-test("all thirteen animation paths run through their timeline and reset transforms", () => {
+test("all twelve animation paths run through their timeline and reset transforms", () => {
   const engine = Object.create(GalleryScene.prototype);
   engine.scene = new T.Scene();
   engine.collection = buildCabinet(engine.scene, projects);
