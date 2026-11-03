@@ -28,14 +28,15 @@ links: [
 ];
 ```
 
-The template makes no award, performance, or competition-result claims. Descriptive labels stand in for handwritten project names that need confirmation. The introductory biography is in `docs/index.html`. The sculptural portrait is an original placeholder created in `buildRoom()` in `models.js`; replace it when you have a portrait to publish.
+The template makes no award, performance, or competition-result claims. Descriptive labels stand in for handwritten project names that need confirmation. The introductory biography is in `docs/index.html`. The sculptural portrait is an original placeholder created in `building.js`; replace it when you have a portrait to publish.
 
 ## Organization
 
 - `docs/index.html`: page structure, introduction, atmosphere controls, and native project dialog.
 - `docs/assets/css/`: colors, typography, entrance animation, and responsive layout.
 - `docs/assets/js/catalogue.js`: editable project information.
-- `docs/assets/js/models.js`: procedural room, cabinet, robotic arm, and twelve object models.
+- `docs/assets/js/building.js`: the courtyard, roof, hinged entrance, and enclosed gallery room.
+- `docs/assets/js/models.js`: procedural cabinet, robotic arm, and twelve object models.
 - `docs/assets/js/scene.js`: rendering, camera movement, raycasting, weather, and object animations.
 - `docs/assets/js/controller.js`: navigation states and transition cancellation.
 - `docs/assets/js/main.js`: HTML interaction, fragment navigation, and scene integration.
@@ -47,7 +48,7 @@ Fonts are bundled locally through Fontsource. The public site does not request a
 
 ## Controls
 
-The top-right atmosphere control exposes Day/Night lighting, Clear/Cloudy/Rainstorm weather, Motion, and Replay entrance. The entrance lasts 3.7 seconds and plays once per session. Skip is immediately available. Reduced motion bypasses it by default.
+The atmosphere control on the rectangular roof beam exposes Day/Night lighting, Clear/Cloudy/Rainstorm weather, Motion, and Replay entrance. The entrance lasts 3.7 seconds and plays once per session. Skip is immediately available. Reduced motion bypasses it by default.
 
 Open the cabinet to select its objects directly, or use the twelve-item collection index. Transitions last 1.5 seconds, with Skip and Cancel controls. Photography and the lamp are effects only, and the original face drawing is displayed directly without a story dialog. The smart-house exhibit supports house/chip inspection; the game controller opens its story after a button press. Escape cancels a transition or closes a project. Closing restores focus to the corresponding index item. A URL such as `#project/sailbot` opens its project directly. Browser Back restores the previous view.
 
@@ -69,7 +70,7 @@ npx playwright install chromium
 npm run test:browser
 ```
 
-This uses a separate headless Chromium instance with fresh browser contexts. Screenshots are saved under `artifacts/browser/screenshots/`; failure traces and an HTML report are saved under `artifacts/browser/`. The report is not opened automatically. The tests check real WebGL initialization, page errors, desktop/tablet/phone viewport layouts, the twelve exhibits and their distinct presentation modes, keyboard focus, and browser history. Browser installation and execution can require environment permission.
+This starts a dedicated Vite test server on port 5174 and uses a separate headless Chromium instance with fresh browser contexts. Screenshots are saved under `artifacts/browser/screenshots/`; failure traces and an HTML report are saved under `artifacts/browser/`. The report is not opened automatically. The tests check real WebGL initialization, page errors, desktop/tablet/phone viewport layouts, the twelve exhibits and their distinct presentation modes, keyboard focus, and browser history. Browser installation and execution can require environment permission.
 
 The deployable website is generated into `dist/`. Production preview usually runs at `http://127.0.0.1:4173/`. The 3D code loads separately from the HTML interaction layer, so the index is not dependent on renderer initialization.
 
@@ -86,3 +87,11 @@ Automated tests cover catalogue/model mapping, transition cancellation, preferen
 For real-device review, inspect the entrance, cabinet, and dialogs on desktop, tablet, and phone screens. Open every exhibit, try rapid selection, use keyboard navigation, and change the atmosphere settings. Test a fresh browser session and a direct project URL.
 
 In a browser console, `galleryDiagnostics()` reports navigation state, WebGL availability, object count, draw calls, triangles, and average frame rate over the last 180 visible frames. Performance targets are approximately 60 FPS on desktop and 30 FPS on a representative phone; these are targets, not measured claims. The renderer caps pixel ratio, disables shadows on narrow screens, and pauses in hidden tabs.
+
+### Walk-in building and revised effects
+
+The courtyard roof has a triangular pediment above a rectangular beam. The mark appears on the triangle; About, Gallery, Contact, and atmosphere controls are CSS3D elements attached to the rectangular beam. The doorway opens before the camera crosses the threshold and turns toward the cabinet inside. Use the return link to leave the room.
+
+The session entrance includes handwritten hello, the KL monogram, the assembled mark, and parting clouds. Replay is available through the roof atmosphere control. Reduced motion bypasses the entrance and object transitions.
+
+`face-drawing.svg` contains editable vector strokes; SVGLoader converts them into scene geometry. `hackathon` remains the stable project URL identifier for Merry-Men. Rocket smoke starts at the transformed nozzle position. TNT uses two brief pure-white flashes followed by black block debris; Motion Off bypasses the effect. Popup close controls use red macOS-style circles with accessible labels.

@@ -8,7 +8,7 @@
       name="description"
       content="Kevin Li's cabinet of curiosities. An interactive gallery of engineering, software, design, and everyday discoveries."
     />
-    <title>Kevin Li — A Cabinet of Curiosities</title>
+    <title>Kevin Li</title>
     <link rel="icon" type="image/svg+xml" href="/assets/images/logo.svg" />
     <link rel="stylesheet" href="/assets/css/style.css" />
     <script type="module" src="/assets/js/main.js"></script>
@@ -22,24 +22,16 @@
       ></canvas>
     </div>
     <div class="grain" aria-hidden="true"></div>
-    <header class="site-header">
-      <a class="brand" href="#about" aria-label="Kevin Li, introduction"
-        ><img
-          src="/assets/images/logo.svg"
-          alt=""
-          width="35"
-          height="35"
-        /><span
-          >KEVIN LI<span class="brand-sub">A PERSONAL COLLECTION</span></span
-        ></a
-      >
+    <div id="architectural-ui" aria-label="Building controls"></div>
+    <div id="roof-controls" class="roof-controls">
+      <span class="roof-name">KEVIN LI</span>
       <nav aria-label="Main navigation">
         <span class="nav-pair"
-          ><a href="#about">About</a
+          ><a id="roof-about" href="#about">About</a
           ><a href="#gallery"
             >Gallery <span class="nav-count">12</span></a
           ></span
-        ><a href="#contact">Contact <span aria-hidden="true">↗</span></a>
+        ><a href="#contact">Contact ↗</a>
       </nav>
       <button
         class="icon-button settings-toggle"
@@ -49,8 +41,22 @@
       >
         ☷
       </button>
-    </header>
+    </div>
+    <button
+      id="enter-room"
+      class="enter-room"
+      aria-label="Open the door and enter the gallery"
+    >
+      Enter gallery ↗
+    </button>
     <aside id="atmosphere" class="atmosphere" aria-label="Atmosphere controls">
+      <button
+        id="close-atmosphere"
+        class="mac-close"
+        aria-label="Close atmosphere controls"
+      >
+        ×
+      </button>
       <span class="control-label">MAKE YOURSELF AT HOME</span>
       <div class="control-row">
         <span>Lighting</span>
@@ -81,8 +87,10 @@
             <span class="small-rule"></span> WELCOME TO MY LITTLE MUSEUM
           </p>
           <h1>Kevin Li<span class="title-dot">.</span></h1>
+          <p class="profile-role">Software Engineer and Physics Student</p>
           <p class="intro-lead">
-            A curious mind.<br />A world of <em>possibilities.</em>
+            Language Model Research<br />
+            & Major League Hacking <em> .tech track winner</em>
           </p>
           <p class="intro-body">
             Exploring physics and quantum computing at Pitt, with a love for
@@ -93,7 +101,7 @@
             joys along the way.
           </p>
           <a class="primary-link" href="#gallery"
-            >Step inside the collection <span aria-hidden="true">↘</span></a
+            >Enter through the gallery door <span aria-hidden="true">↘</span></a
           >
           <div class="intro-footnote">
             <span class="tiny-cross" aria-hidden="true">✧</span> Engineering ·
@@ -120,6 +128,9 @@
           <p class="eyebrow">01 — THE COLLECTION</p>
           <h2 id="gallery-title">Every object<br />has a <em>story.</em></h2>
           <p>Open the cabinet. Follow your curiosity.</p>
+          <a id="leave-room" class="text-link" href="#about"
+            >← Return through the entrance</a
+          >
         </div>
         <div class="cabinet-controls">
           <button id="doors" class="pill" aria-pressed="false">
@@ -156,7 +167,7 @@
             >Find me on GitHub <span aria-hidden="true">↗</span></a
           >
         </div>
-        <img src="/assets/images/logo.svg" alt="" width="160" height="160" />
+
         <footer>
           <span>© <span id="year">2026</span> Kevin Li</span
           ><span>BUILT WITH CURIOSITY</span
@@ -167,6 +178,13 @@
     <div id="object-label" role="status" hidden></div>
     <div id="transition-effect" aria-hidden="true"></div>
     <section id="exhibit-actions" aria-label="Exhibit inspection" hidden>
+      <button
+        id="close-inspection"
+        class="mac-close"
+        aria-label="Close inspection"
+      >
+        ×
+      </button>
       <span id="preview-title"></span>
       <button id="inspect-chip" aria-pressed="false" hidden>
         Inspect chip
@@ -196,10 +214,20 @@
     <div id="transition" hidden>
       <span id="transition-title"></span
       ><button id="skip-transition">Skip animation →</button
-      ><button id="cancel-transition" aria-label="Cancel animation">×</button>
+      ><button
+        id="cancel-transition"
+        class="mac-close"
+        aria-label="Cancel animation"
+      >
+        ×
+      </button>
     </div>
     <dialog id="project-dialog" aria-labelledby="detail-title">
-      <button id="close-detail" class="close-button" aria-label="Close exhibit">
+      <button
+        id="close-detail"
+        class="close-button mac-close"
+        aria-label="Close exhibit"
+      >
         ×
       </button>
       <div class="detail-number" id="detail-number"></div>
@@ -219,8 +247,20 @@
       <div class="entrance-center">
         <span class="hello-script" aria-hidden="true">hello</span>
         <svg
+          class="kl-monogram"
+          viewBox="0 0 160 90"
+          fill="none"
+          aria-label="KL monogram"
+          role="img"
+        >
+          <path
+            d="M48 12C39 33 34 59 24 76M39 48C62 36 76 21 84 13M40 48C58 48 61 64 78 74M111 12C100 27 89 54 94 69C100 80 126 72 142 65"
+          />
+        </svg>
+        <svg
           viewBox="0 0 64 64"
           fill="none"
+          class="theta-mark"
           aria-label="Kevin Li's theta logo"
           role="img"
         >

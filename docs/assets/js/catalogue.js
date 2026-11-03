@@ -56,7 +56,7 @@ export const projects = [
   ],
   [
     "hackathon",
-    "Hackathon Project",
+    "Merry-Men",
     "A sprint of ideas",
     "Software",
     "A curious cat and a question worth chasing.",

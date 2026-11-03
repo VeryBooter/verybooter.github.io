@@ -1,4 +1,5 @@
 import * as T from "three";
+import { buildBuilding, shelfDepth } from "./building.js";
 import { ornateFrame } from "./ornaments.js";
 import { drawingPosition } from "./exhibit-layout.js";
 
@@ -133,7 +134,7 @@ export function buildObject(id) {
     case "rocket":
       cylinder(root, 0.13, 0.13, 0.9, "cream", [0, 0.65, 0]);
       cylinder(root, 0, 0.13, 0.35, "red", [0, 1.27, 0]);
-      cylinder(root, 0.09, 0.14, 0.12, "black", [0, 0.14, 0]);
+      parts.nozzle = cylinder(root, 0.09, 0.14, 0.12, "black", [0, 0.14, 0]);
       for (let i = 0; i < 3; i++) {
         const fin = group(root);
         fin.rotation.y = (i * Math.PI * 2) / 3;
@@ -452,102 +453,11 @@ export function buildObject(id) {
 }
 
 export function buildRoom(scene) {
-  const room = new T.Group();
-  scene.add(room);
-  const floor = box(room, 80, 0.2, 60, "stone", [0, -0.22, 0]);
-  floor.receiveShadow = true;
-  box(room, 32, 13, 0.25, "edge", [0, 5.8, -5]);
-  for (const x of [-12.5, 12.5]) {
-    const column = cylinder(room, 0.46, 0.5, 9, "stone", [x, 4.3, -3.3]);
-    column.name = "outer-column";
-    for (let j = 0; j < 12; j++) {
-      const a = (j / 12) * Math.PI * 2;
-      cylinder(
-        room,
-        0.035,
-        0.035,
-        8.45,
-        "edge",
-        [x + Math.cos(a) * 0.47, 4.25, -3.3 + Math.sin(a) * 0.47],
-        undefined,
-        6,
-      );
-    }
-    for (const y of [0, 8.6]) {
-      box(room, 1.25, 0.22, 1.25, "stone", [x, y, -3.3]);
-      cylinder(room, 0.68, 0.62, 0.25, "edge", [x, y + 0.2, -3.3]);
-    }
-  }
-  box(room, 26, 0.45, 1.5, "stone", [0, 9, -3.3]);
-  const pediment = new T.Shape();
-  pediment.moveTo(-13, 0);
-  pediment.lineTo(0, 2);
-  pediment.lineTo(13, 0);
-  pediment.closePath();
-  const roof = mesh(
-    room,
-    new T.ExtrudeGeometry(pediment, { depth: 0.4, bevelEnabled: false }),
-    "edge",
-    [0, 9.3, -3.8],
-  );
-  roof.name = "triangular-pediment";
-  const insignia = group(room, [0, 10.2, -3.23]);
-  for (const angle of [0, Math.PI])
-    mesh(
-      insignia,
-      new T.TorusGeometry(0.29, 0.017, 5, 28, Math.PI - 0.35),
-      "brass",
-      [0, 0, 0],
-      [0, 0, angle + 0.175],
-    );
-  mesh(insignia, new T.TorusGeometry(0.105, 0.012, 5, 24), "brass");
-  box(insignia, 0.21, 0.016, 0.02, "brass");
-  box(insignia, 0.02, 0.15, 0.02, "brass", [0, 0.36, 0]);
-  for (const [from, to] of [
-    [
-      [-13, 9.3, -3.3],
-      [0, 11.3, -3.3],
-    ],
-    [
-      [0, 11.3, -3.3],
-      [13, 9.3, -3.3],
-    ],
-  ]) {
-    const a = new T.Vector3(...from),
-      b = new T.Vector3(...to),
-      direction = b.clone().sub(a);
-    const trim = cylinder(
-      room,
-      0.055,
-      0.055,
-      direction.length(),
-      "stone",
-      a.clone().add(b).multiplyScalar(0.5).toArray(),
-    );
-    trim.quaternion.setFromUnitVectors(
-      new T.Vector3(0, 1, 0),
-      direction.normalize(),
-    );
-  }
-  for (const z of [-1, 4, 9, 14])
-    box(room, 38, 0.006, 0.018, "brass", [0, -0.11, z]);
-  for (const x of [-12, -6, 0, 6, 12])
-    box(room, 0.018, 0.006, 35, "brass", [x, -0.11, 7]);
-  // The portrait remains an original, explicitly labelled placeholder.
-  const portrait = group(room, [2.1, 4.2, -3.7]);
-  box(portrait, 3.2, 4.1, 0.12, "green");
-  ornateFrame(portrait, 3.5, 4.4);
-  const bust = group(portrait, [0, -0.45, 0.3]);
-  sphere(bust, 0.65, "cream", [0, 0.7, 0], [0.78, 1.15, 0.5]);
-  cylinder(bust, 0.26, 0.35, 0.65, "cream", [0, -0.15, 0]);
-  sphere(bust, 0.9, "cream", [0, -0.65, 0], [1.1, 0.55, 0.5]);
-  box(bust, 1.8, 0.18, 0.6, "stone", [0, -1.12, 0]);
-  room.userData.portrait = portrait;
-  return room;
+  return buildBuilding(scene, { box, cylinder, mesh, sphere, ornateFrame });
 }
 
 export function buildCabinet(scene, projects) {
-  const cabinet = group(scene, [-2.2, 0, -1.7]);
+  const cabinet = group(scene, [-2.2, 0, shelfDepth]);
   box(cabinet, 6.5, 6.25, 0.17, "wood", [0, 3.2, -0.75]);
   for (const x of [-3.35, 3.35])
     box(cabinet, 0.2, 6.5, 1.7, "wood", [x, 3.1, 0]);

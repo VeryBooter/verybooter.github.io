@@ -1,4 +1,9 @@
 import * as T from "three";
+import {
+  CSS3DRenderer,
+  CSS3DObject,
+} from "three/addons/renderers/CSS3DRenderer.js";
+import { SVGLoader } from "three/addons/loaders/SVGLoader.js";
 import { buildRoom, buildCabinet, palette, positionRobot } from "./models.js";
 import { cameraPose } from "./camera.js";
 import { drawingPosition } from "./exhibit-layout.js";
@@ -9,7 +14,15 @@ export class GalleryScene {
   constructor(
     canvas,
     projects,
-    { onSelect, onHover, onFailure, onFrame, onGameButton } = {},
+    {
+      onSelect,
+      onHover,
+      onFailure,
+      onFrame,
+      onGameButton,
+      onEnterRoom,
+      onLocationChange,
+    } = {},
   ) {
     this.canvas = canvas;
     this.projects = projects;
@@ -18,6 +31,12 @@ export class GalleryScene {
     this.onFailure = onFailure;
     this.onFrame = onFrame;
     this.onGameButton = onGameButton;
+    this.onLocationChange = onLocationChange;
+    this.onEnterRoom = onEnterRoom;
+    this.entryProgress = 0;
+    this.entryTarget = 0;
+    this.entranceAngle = 0;
+    this.location = "courtyard";
     this.preferences = { theme: "light", weather: "clear", motion: true };
     this.progress = 0;
     this.open = false;
@@ -46,16 +65,52 @@ export class GalleryScene {
     this.raycaster = new T.Raycaster();
     this.room = buildRoom(this.scene);
     this.collection = buildCabinet(this.scene, projects);
-    this.artworkTexture = new T.TextureLoader().load(
-      new URL("../images/face-drawing.png", import.meta.url).href,
-      (texture) => {
-        texture.colorSpace = T.SRGBColorSpace;
+    this.vectorArtworkLoaded = false;
+    new SVGLoader().load(
+      new URL("../images/face-drawing.svg", import.meta.url).href,
+      (data) => {
         const artwork =
           this.collection.exhibits.get("drawing").userData.parts.artwork;
-        artwork.material.map = texture;
-        artwork.material.needsUpdate = true;
+        const vectors = new T.Group();
+        vectors.name = "vector-face-strokes";
+        vectors.position.set(-0.52, 0.67, 0.012);
+        vectors.scale.set(1.04 / 97, -1.34 / 125, 1);
+        for (const path of data.paths)
+          for (const subpath of path.subPaths) {
+            const geometry = SVGLoader.pointsToStroke(
+              subpath.getPoints(36),
+              path.userData.style,
+            );
+            if (!geometry) continue;
+            const stroke = new T.Mesh(
+              geometry,
+              new T.MeshBasicMaterial({ color: "#282923", side: T.DoubleSide }),
+            );
+            stroke.userData.projectId = "drawing";
+            vectors.add(stroke);
+          }
+        artwork.add(vectors);
+        this.vectorArtworkLoaded = true;
       },
     );
+    this.uiRenderer = new CSS3DRenderer();
+    this.uiRenderer.domElement.style.pointerEvents = "none";
+    document
+      .querySelector("#architectural-ui")
+      .append(this.uiRenderer.domElement);
+    this.roofControls = new CSS3DObject(
+      document.querySelector("#roof-controls"),
+    );
+    this.roofControls.name = "navigation-on-rectangular-roof";
+    this.roofControls.position.set(0, 9, -2.48);
+    this.roofControls.scale.setScalar(0.02);
+    this.scene.add(this.roofControls);
+    this.doorControl = new CSS3DObject(document.querySelector("#enter-room"));
+    this.doorControl.position.set(0, 2.2, -4.65);
+    this.doorControl.scale.setScalar(0.02);
+    this.scene.add(this.doorControl);
+    this.roofControls.element.dataset.mounted = "true";
+    this.doorControl.element.dataset.mounted = "true";
     this.ambient = new T.HemisphereLight("#fff7e5", "#807561", 2.3);
     this.scene.add(this.ambient);
     this.sun = new T.DirectionalLight("#fff2d2", 3.2);
@@ -137,6 +192,20 @@ export class GalleryScene {
       );
       this.renderer.shadowMap.enabled = !this.mobile;
       this.renderer.setSize(innerWidth, innerHeight, false);
+      this.uiRenderer.setSize(innerWidth, innerHeight);
+      this.room.children
+        .filter((child) => child.name === "pediment-slope")
+        .forEach((trim) => {
+          trim.position.y = trim.userData.baseY + (this.mobile ? 0.5 : 0);
+        });
+      this.roofControls.element.style.width = this.mobile ? "420px" : "1240px";
+      this.roofControls.scale.setScalar(this.mobile ? 0.045 : 0.02);
+      this.doorControl.scale.setScalar(this.mobile ? 0.03 : 0.02);
+      this.room.userData.roofBar.scale.y = this.mobile ? 2 : 1;
+      this.room.getObjectByName("triangular-pediment").position.y = this.mobile
+        ? 10.05
+        : 9.55;
+      this.room.userData.logo.position.y = this.mobile ? 10.85 : 10.35;
       this.camera.aspect = innerWidth / innerHeight;
       this.camera.fov = this.mobile ? 42 : 38;
       this.camera.updateProjectionMatrix();
@@ -160,7 +229,7 @@ export class GalleryScene {
     this.handleMove = (e) => {
       if (!this.visible || this.active) return;
       const id = this.pick(e);
-      canvas.style.cursor = id ? "pointer" : "default";
+      canvas.style.cursor = id || this.pickEntrance(e) ? "pointer" : "default";
       onHover?.(id);
     };
     this.pointerDown = (e) => {
@@ -170,6 +239,10 @@ export class GalleryScene {
       if (this.active?.id === "games" && this.pointerStart) {
         const button = this.pickGameButton(e);
         if (button !== null) this.onGameButton?.(button);
+        return;
+      }
+      if (this.entryProgress < 0.1 && this.pickEntrance(e)) {
+        onEnterRoom?.();
         return;
       }
       if (this.active || !this.pointerStart) return;
@@ -208,12 +281,31 @@ export class GalleryScene {
   }
   setProgress(value) {
     this.progress = T.MathUtils.clamp(value, 0, 1);
+    this.entryTarget = this.progress > 0.4 ? 1 : 0;
+  }
+  snapInside() {
+    this.entryTarget = 1;
+    this.entryProgress = 1;
+  }
+  pickEntrance(event) {
+    if (this.entryProgress > 0.2) return false;
+    const rect = this.canvas.getBoundingClientRect();
+    this.raycaster.setFromCamera(
+      new T.Vector2(
+        ((event.clientX - rect.left) / rect.width) * 2 - 1,
+        (-(event.clientY - rect.top) / rect.height) * 2 + 1,
+      ),
+      this.camera,
+    );
+    return this.raycaster
+      .intersectObject(this.room.userData.portal, true)
+      .some((hit) => hit.object.userData.entranceDoor);
   }
   setDoors(open) {
     this.open = open;
   }
   pick(event) {
-    if (this.progress < 0.25 || !this.open) return null;
+    if (this.entryProgress < 0.95 || !this.open) return null;
     const rect = this.canvas.getBoundingClientRect();
     this.raycaster.setFromCamera(
       new T.Vector2(
@@ -369,10 +461,16 @@ export class GalleryScene {
           item.position.y += Math.pow((p - 0.6) / 0.4, 2) * 11;
           parts.flame.visible = true;
         }
-        this.animateSmoke(p);
+        this.animateSmoke(item, p);
+        const nozzle = parts.nozzle.getWorldPosition(new T.Vector3());
+        const screen = this.camera
+          ? nozzle.clone().project(this.camera)
+          : new T.Vector3();
         this.onFrame?.({
           effect: "exhaust",
-          strength: T.MathUtils.smoothstep(p, 0.6, 0.95) * 0.86,
+          strength: T.MathUtils.smoothstep(p, 0.65, 0.98) * 0.8,
+          originX: (screen.x + 1) * 50,
+          originY: (1 - screen.y) * 50,
         });
         break;
       }
@@ -412,13 +510,24 @@ export class GalleryScene {
         this.collection.grip.rotation.z = p > 0.65 ? -0.7 : 0;
         this.collection.thumbsUp.visible = p > 0.65;
         break;
-      case "voxelcraft":
+      case "voxelcraft": {
         item.scale.multiplyScalar(
           1 + Math.sin(p * Math.PI * 5) * 0.1 * (1 - p),
         );
         item.visible = p < 0.48 || p >= 1;
+        this.particles.material = palette.black;
         this.animateParticles(item, p);
+        const flash = (p >= 0.3 && p < 0.35) || (p >= 0.48 && p < 0.53);
+        this.onFrame?.({
+          effect: flash ? "tnt-white" : p >= 0.53 ? "tnt-black" : null,
+          strength: flash
+            ? 1
+            : p >= 0.53
+              ? Math.sin(((p - 0.53) / 0.47) * Math.PI) * 0.85
+              : 0,
+        });
         break;
+      }
       case "hackathon": {
         const direction = this.camera
           ? item
@@ -503,17 +612,28 @@ export class GalleryScene {
     }
     this.particles.instanceMatrix.needsUpdate = true;
   }
-  animateSmoke(p) {
-    this.smoke.visible = p > 0.3;
+  animateSmoke(rocket, p) {
+    this.smoke.visible = p > 0.6;
+    if (!this.smoke.visible) return;
+    const nozzle = rocket.userData.parts.nozzle.getWorldPosition(
+      new T.Vector3(),
+    );
+    const direction = new T.Vector3(0, -1, 0).applyQuaternion(
+      rocket.getWorldQuaternion(new T.Quaternion()),
+    );
+    this.nozzleWorld = nozzle.clone();
+    this.smokeOrigin = nozzle.clone();
+    this.smoke.material.color.set("#eee5d1");
+    const length = Math.max(0.1, (p - 0.6) * 20);
     for (let i = 0; i < 24; i++) {
-      const a = i * 2.4,
-        t = Math.max(0, p - 0.3);
-      this.dummy.position.set(
-        -2.2 + Math.cos(a) * t * 5,
-        2 + t * (i % 5),
-        Math.sin(a) * t * 4 + 1,
-      );
-      this.dummy.scale.setScalar(t * (1 + (i % 4)) * 2);
+      const t = i / 23,
+        a = i * 2.4,
+        spread = 0.06 + t * 0.7;
+      this.dummy.position.copy(nozzle).addScaledVector(direction, t * length);
+      this.dummy.position.x += Math.cos(a) * spread;
+      this.dummy.position.z += Math.sin(a) * spread;
+      this.dummy.position.y = Math.max(-0.05, this.dummy.position.y);
+      this.dummy.scale.setScalar(0.15 + t * 0.9);
       this.dummy.updateMatrix();
       this.smoke.setMatrixAt(i, this.dummy.matrix);
     }
@@ -529,12 +649,45 @@ export class GalleryScene {
       if (this.frameTimes.length > 180) this.frameTimes.shift();
     }
     const mobile = this.mobile;
-    const pose = cameraPose(this.progress, mobile, this.preferences.motion);
+    // Camera travel follows elapsed time, including on slower software-rendered devices.
+    const travel = this.preferences.motion ? Math.max(0, elapsed) / 2000 : 1;
+    this.entryProgress =
+      this.entryTarget === 1
+        ? Math.min(1, this.entryProgress + travel)
+        : Math.max(0, this.entryProgress - travel);
+    const location =
+      this.entryProgress > 0.99
+        ? "interior"
+        : this.entryProgress < 0.01
+          ? "courtyard"
+          : "entering";
+    if (location !== this.location) {
+      this.location = location;
+      this.onLocationChange?.(location);
+    }
+    const opening = this.entryTarget === 1 || this.entryProgress > 0.2 ? 1 : 0;
+    this.entranceAngle = this.preferences.motion
+      ? lerp(this.entranceAngle, opening, Math.min(1, delta * 6))
+      : opening;
+    this.room.userData.entranceDoors.forEach(
+      ({ hinge, sign }) =>
+        (hinge.rotation.y = -sign * this.entranceAngle * 1.65),
+    );
+    this.roofControls.visible = this.entryProgress < 0.55;
+    this.doorControl.visible = this.entryProgress < 0.2;
+    const pose = cameraPose(
+      this.entryProgress,
+      mobile,
+      true,
+      this.camera.aspect < 0.65,
+    );
+    this.camera.fov = pose.fov;
+    this.camera.updateProjectionMatrix();
     this.camera.position.set(...pose.position);
     this.look.set(...pose.target);
     this.camera.lookAt(this.look);
-    this.collection.cabinet.visible = this.progress > 0.08 || !!this.active;
-    this.room.userData.portrait.visible = this.progress < 0.35;
+    this.collection.cabinet.visible = true;
+    this.room.userData.portrait.visible = this.entryProgress < 0.5;
     const target = this.open ? 1 : 0;
     this.doorAngle = this.preferences.motion
       ? lerp(this.doorAngle, target, Math.min(1, delta * 4))
@@ -548,6 +701,7 @@ export class GalleryScene {
     }
     this.animate(now);
     this.renderer.render(this.scene, this.camera);
+    this.uiRenderer.render(this.scene, this.camera);
     this.raf = requestAnimationFrame(this.tick);
   }
   pause() {

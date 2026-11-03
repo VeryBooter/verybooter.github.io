@@ -134,3 +134,66 @@ test("all twelve animation paths run through their timeline and reset transforms
     assert.equal(engine.smoke.visible, false);
   }
 });
+
+test("camera crosses the open entrance before turning toward the interior shelf", () => {
+  for (const compact of [false, true]) {
+    const threshold = cameraPose(0.65, compact);
+    assert.ok(threshold.position[2] < -5);
+    assert.ok(Math.abs(threshold.position[0]) < 2.8);
+    assert.ok(threshold.position[1] < 5.8);
+    const inside = cameraPose(1, compact);
+    const world = new T.Scene();
+    const room = buildRoom(world);
+    const collection = buildCabinet(world, projects);
+    assert.equal(room.userData.entranceDoors.length, 2);
+    assert.ok(collection.cabinet.position.z < inside.position[2]);
+    assert.ok(
+      room.getObjectByName("interior-rear-wall").position.z <
+        collection.cabinet.position.z,
+    );
+    assert.ok(
+      room.getObjectByName("triangle-exclusive-logo").position.y >
+        room.getObjectByName("rectangular-roof-bar").position.y,
+    );
+  }
+});
+
+test("TNT flashes twice in pure white before black debris, and exhaust follows the nozzle", () => {
+  const engine = Object.create(GalleryScene.prototype);
+  engine.scene = new T.Scene();
+  engine.collection = buildCabinet(engine.scene, projects);
+  engine.particles = new T.InstancedMesh(
+    new T.BoxGeometry(),
+    new T.MeshBasicMaterial(),
+    40,
+  );
+  engine.smoke = new T.InstancedMesh(
+    new T.SphereGeometry(),
+    new T.MeshBasicMaterial(),
+    24,
+  );
+  engine.dummy = new T.Object3D();
+  let frame;
+  engine.onFrame = (value) => {
+    frame = value;
+  };
+  engine.select("voxelcraft");
+  for (const [p, effect, strength] of [
+    [0.32, "tnt-white", 1],
+    [0.4, null, 0],
+    [0.5, "tnt-white", 1],
+    [0.7, "tnt-black", null],
+  ]) {
+    engine.animate(engine.active.start + p * 1500);
+    assert.equal(frame.effect, effect);
+    if (strength !== null) assert.equal(frame.strength, strength);
+  }
+  engine.select("rocket");
+  engine.animate(engine.active.start + 1125);
+  assert.ok(engine.smoke.visible);
+  assert.ok(engine.nozzleWorld.distanceTo(engine.smokeOrigin) < 1e-8);
+  const nozzle = engine.collection.exhibits
+    .get("rocket")
+    .userData.parts.nozzle.getWorldPosition(new T.Vector3());
+  assert.ok(engine.smokeOrigin.distanceTo(nozzle) < 1e-8);
+});

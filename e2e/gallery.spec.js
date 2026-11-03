@@ -10,8 +10,18 @@ async function ready(page, hash = "") {
     () => typeof window.galleryDiagnostics === "function",
   );
   const skip = page.locator("#skip-entrance");
-  if (await skip.isVisible()) await skip.click();
+  if (await skip.isVisible())
+    await skip.click({ timeout: 1000 }).catch(() => {});
   await page.evaluate(() => document.fonts.ready);
+}
+
+async function enterRoom(page) {
+  await page.locator("#enter-room").click();
+  await expect
+    .poll(() => page.evaluate(() => galleryDiagnostics().location), {
+      timeout: 15000,
+    })
+    .toBe("interior");
 }
 
 async function capture(page, name) {
@@ -28,6 +38,7 @@ for (const [name, width, height] of [
   test(`${name}: real WebGL, gallery controls, and layout`, async ({
     page,
   }) => {
+    test.setTimeout(120000);
     await page.setViewportSize({ width, height });
     const errors = [];
     page.on("pageerror", (error) => errors.push(error.message));
@@ -49,9 +60,7 @@ for (const [name, width, height] of [
     expect(
       await page.evaluate(() => document.documentElement.scrollWidth),
     ).toBeLessThanOrEqual(width);
-    await page
-      .locator("#gallery")
-      .evaluate((element) => element.scrollIntoView({ behavior: "instant" }));
+    await enterRoom(page);
     await capture(page, `${name}-cabinet-closed`);
     await page.locator("#doors").click();
     await expect(page.locator("#doors")).toHaveAttribute(
@@ -65,6 +74,12 @@ for (const [name, width, height] of [
     await capture(page, `${name}-project`);
     await page.locator("#close-detail").click();
     await expect(page.locator("#project-dialog")).not.toBeVisible();
+    await page.locator("#leave-room").click();
+    await expect
+      .poll(() => page.evaluate(() => galleryDiagnostics().location), {
+        timeout: 15000,
+      })
+      .toBe("courtyard");
     await page.locator(".settings-toggle").click();
     await page.locator('button[data-theme="dark"]').click();
     await page.locator("#weather").selectOption("storm");
@@ -78,8 +93,9 @@ test("all exhibits open, close, and restore keyboard focus in a real browser", a
   page,
 }) => {
   // This test includes twelve real-time animations plus inspection screenshots.
-  test.setTimeout(120000);
+  test.setTimeout(300000);
   await ready(page);
+  await enterRoom(page);
   for (const project of projects) {
     const button = page.locator(`[data-project="${project.id}"]`);
     await button.click();
@@ -134,6 +150,7 @@ test("replayed entrance follows the hello, theta, and parting-cloud sequence", a
   // Sample each authored CSS-animation stage without depending on screenshot/GPU timing.
   for (const [name, time] of [
     ["hello", 450],
+    ["kl", 1100],
     ["theta", 2200],
     ["clouds", 2950],
   ]) {
@@ -169,4 +186,80 @@ test("project links bypass the entrance and browser Back closes a selected proje
   await expect(page.locator("#project-dialog")).toBeVisible();
   await page.goBack();
   await expect(page.locator("#project-dialog")).not.toBeVisible();
+});
+
+test("roof controls, vector artwork, two white flashes, nozzle exhaust, and red close buttons", async ({
+  page,
+}) => {
+  test.setTimeout(120000);
+  await page.clock.install();
+  await ready(page);
+  await expect
+    .poll(() => page.evaluate(() => galleryDiagnostics().vectorDrawing))
+    .toBe(true);
+  expect(
+    await page.evaluate(() => galleryDiagnostics().roofNavigation.attached),
+  ).toBe(true);
+  await expect(page.locator(".site-header")).toHaveCount(0);
+  await enterRoom(page);
+  const inside = await page.evaluate(() => galleryDiagnostics());
+  expect(inside.cameraPosition[2]).toBeLessThan(-5);
+  expect(inside.shelfPosition[2]).toBeLessThan(inside.cameraPosition[2]);
+  await page.clock.pauseAt(new Date(Date.now() + 120000));
+  await page.locator('[data-project="voxelcraft"]').click();
+  await page.clock.runFor(480);
+  await expect(page.locator("#transition-effect")).toHaveAttribute(
+    "data-effect",
+    "tnt-white",
+  );
+  await expect(page.locator("#transition-effect")).toHaveCSS(
+    "background-color",
+    "rgb(255, 255, 255)",
+  );
+  await expect(page.locator("#transition-effect")).toHaveCSS("opacity", "1");
+  expect(await page.evaluate(() => galleryDiagnostics().location)).toBe(
+    "interior",
+  );
+  await capture(page, "tnt-first-white");
+  await page.clock.runFor(120);
+  await expect(page.locator("#transition-effect")).not.toHaveAttribute(
+    "data-effect",
+    "tnt-white",
+  );
+  await page.clock.runFor(150);
+  await expect(page.locator("#transition-effect")).toHaveAttribute(
+    "data-effect",
+    "tnt-white",
+  );
+  await capture(page, "tnt-second-white");
+  await page.clock.runFor(300);
+  await expect(page.locator("#transition-effect")).toHaveAttribute(
+    "data-effect",
+    "tnt-black",
+  );
+  await capture(page, "tnt-black-debris");
+  await page.clock.runFor(450);
+  await page.locator("#close-detail").click();
+  await page.locator('[data-project="rocket"]').click();
+  await page.clock.runFor(1125);
+  const exhaust = await page.evaluate(() => galleryDiagnostics());
+  expect(exhaust.nozzleWorld).toEqual(exhaust.smokeOrigin);
+  await capture(page, "rocket-nozzle-exhaust");
+  await page.clock.runFor(375);
+  await expect(page.locator("#close-detail")).toHaveCSS(
+    "background-color",
+    "rgb(255, 95, 87)",
+  );
+  for (const id of [
+    "close-detail",
+    "close-atmosphere",
+    "close-inspection",
+    "cancel-transition",
+  ]) {
+    await expect(page.locator(`#${id}`)).toHaveCSS(
+      "background-color",
+      "rgb(255, 95, 87)",
+    );
+  }
+  await capture(page, "red-close-detail");
 });

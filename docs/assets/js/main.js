@@ -136,6 +136,7 @@ function pressGameButton(index) {
   );
 }
 $("#end-exhibit").addEventListener("click", closeProject);
+$("#close-inspection").addEventListener("click", closeProject);
 $("#read-story").addEventListener("click", () =>
   openStory(getProject(controller.activeId)),
 );
@@ -308,6 +309,24 @@ $("#doors").addEventListener("click", () => {
   cabinetOpen = !cabinetOpen;
   updateDoors();
 });
+function enterGallery() {
+  gallery.scrollIntoView({ behavior: "instant", block: "start" });
+  updateScroll();
+  scene?.setProgress(1);
+  if (scene) document.body.dataset.location = "entering";
+}
+$("#enter-room").addEventListener("click", enterGallery);
+for (const link of document.querySelectorAll('a[href="#gallery"]'))
+  link.addEventListener("click", (event) => {
+    event.preventDefault();
+    history.pushState(null, "", "#gallery");
+    enterGallery();
+  });
+$("#close-atmosphere").addEventListener("click", () => {
+  $("#atmosphere").classList.remove("open");
+  $(".settings-toggle").setAttribute("aria-expanded", "false");
+  $(".settings-toggle").focus();
+});
 function updateScroll() {
   const progress = Math.max(
     0,
@@ -323,7 +342,12 @@ function updateScroll() {
 window.addEventListener("scroll", updateScroll, { passive: true });
 window.addEventListener("resize", updateScroll);
 function setEntranceInert(inert) {
-  for (const target of [$(".site-header"), $("#atmosphere"), $("main")])
+  for (const target of [
+    $("#roof-controls"),
+    $("#enter-room"),
+    $("#atmosphere"),
+    $("main"),
+  ])
     target.inert = inert;
 }
 function finishEntrance() {
@@ -335,7 +359,7 @@ function finishEntrance() {
   setEntranceInert(false);
   safeWrite(session, "gallery.entered", "yes");
   if (controller.state === "entrance") controller.change("introduction");
-  if (restoreFocus) $(".brand").focus({ preventScroll: true });
+  if (restoreFocus) $("#roof-about").focus({ preventScroll: true });
 }
 function playEntrance() {
   if (!preferences.motion) return;
@@ -356,12 +380,12 @@ function playEntrance() {
 }
 $("#skip-entrance").addEventListener("click", () => {
   finishEntrance();
-  $(".brand").focus({ preventScroll: true });
+  $("#roof-about").focus({ preventScroll: true });
 });
 $("#replay").addEventListener("click", () => {
   $("#atmosphere").classList.remove("open");
   $(".settings-toggle").setAttribute("aria-expanded", "false");
-  if (dialog.open) closeProject();
+  if (controller.activeId) closeProject();
   window.scrollTo({ top: 0, behavior: "instant" });
   playEntrance();
 });
@@ -378,6 +402,7 @@ $(".nav-count").textContent = projects.length;
 $("#collection-range").textContent = `01 — ${projects.length}`;
 applyPreferences();
 $("#year").textContent = new Date().getFullYear();
+document.body.dataset.location = "courtyard";
 const initialProject = projectFromHash(location.hash);
 if (initialProject)
   openProject(initialProject.id, { fromRoute: true, animate: false });
@@ -390,13 +415,20 @@ try {
     onHover: showLabel,
     onFailure: handleFailure,
     onGameButton: pressGameButton,
-    onFrame: ({ effect, strength }) => {
+    onEnterRoom: enterGallery,
+    onLocationChange: (location) => {
+      document.body.dataset.location = location;
+    },
+    onFrame: ({ effect, strength, originX = 50, originY = 80 }) => {
       const overlay = $("#transition-effect");
       overlay.dataset.effect = effect || "";
+      overlay.style.setProperty("--exhaust-x", `${originX}%`);
+      overlay.style.setProperty("--exhaust-y", `${originY}%`);
       overlay.style.setProperty("--effect", Math.max(0, strength));
     },
   });
   scene.setPreferences(preferences);
+  if (initialProject) scene.snapInside();
   updateDoors();
   updateScroll();
 } catch (error) {
@@ -414,6 +446,21 @@ window.galleryDiagnostics = () => ({
   webgl: !!scene && !fallback,
   objects: scene?.collection.exhibits.size || 0,
   preferences: { ...preferences },
+  location: scene?.location || "fallback",
+  entryProgress: scene?.entryProgress,
+  cameraPosition: scene?.camera.position.toArray(),
+  shelfPosition: scene?.collection.cabinet.position.toArray(),
+  roofNavigation: scene
+    ? {
+        attached: scene.roofControls.isCSS3DObject,
+        position: scene.roofControls.position.toArray(),
+        visible: scene.roofControls.visible,
+      }
+    : null,
+  vectorDrawing: scene?.vectorArtworkLoaded || false,
+  nozzleWorld: scene?.nozzleWorld?.toArray() || null,
+  smokeOrigin: scene?.smokeOrigin?.toArray() || null,
+  effect: $("#transition-effect").dataset.effect,
   drawCalls: scene?.renderer.info.render.calls,
   triangles: scene?.renderer.info.render.triangles,
   averageFps: scene?.frameTimes.length

@@ -1336,3 +1336,330 @@ body:has(#exhibit-actions:not([hidden])) .collection-index {
 .entrance-center > .hello-script {
   font-family: "Snell Roundhand", "Apple Chancery", cursive;
 }
+
+/* Controls live on the building's roof plane, rendered by CSS3DRenderer. */
+#architectural-ui {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 3;
+  overflow: hidden;
+}
+.roof-controls {
+  width: 1240px;
+  height: 46px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 0 26px;
+  pointer-events: none;
+  opacity: 0;
+  color: #282c29;
+  background: transparent;
+  font-family: var(--sans);
+}
+.roof-controls[data-mounted] {
+  opacity: 1;
+  pointer-events: auto;
+}
+.roof-controls nav {
+  margin-left: auto;
+  font-size: 17px;
+  gap: 30px;
+}
+.roof-controls .nav-pair {
+  width: 200px;
+  height: 44px;
+}
+.roof-controls .nav-pair a {
+  font-size: 16px;
+}
+.roof-name {
+  font-size: 18px;
+  letter-spacing: 4px;
+}
+.roof-controls .settings-toggle {
+  width: 38px;
+  height: 38px;
+  font-size: 22px;
+  background: #eee9dfa6;
+}
+.enter-room {
+  opacity: 0;
+  pointer-events: none;
+  width: 170px;
+  height: 64px;
+  display: grid;
+  place-items: center;
+  border: 1px solid #bd9b62;
+  background: #f1e7d0;
+  color: #352b20;
+  font-family: var(--serif);
+  font-size: 22px;
+  box-shadow: 0 4px 16px #0002;
+  white-space: nowrap;
+}
+.enter-room[data-mounted] {
+  opacity: 1;
+  pointer-events: auto;
+}
+.profile-role {
+  font-size: 11px;
+  letter-spacing: 1px;
+  color: var(--muted);
+  margin: -16px 0 25px;
+}
+body:not([data-location="interior"]) .collection-index,
+body:not([data-location="interior"]) .gallery-heading,
+body:not([data-location="interior"]) .cabinet-controls {
+  opacity: 0;
+  pointer-events: none;
+}
+body.no-webgl .collection-index,
+body.no-webgl .gallery-heading,
+body.no-webgl .cabinet-controls {
+  opacity: 1;
+  pointer-events: auto;
+}
+body.no-webgl .roof-controls {
+  opacity: 1;
+  pointer-events: auto;
+  position: fixed;
+  top: 10px;
+  left: 5%;
+  width: 90%;
+  height: 50px;
+  background: var(--panel);
+  z-index: 10;
+}
+body.no-webgl .enter-room {
+  display: none;
+}
+#leave-room {
+  margin-top: 16px;
+  display: inline-block;
+}
+.mac-close,
+.close-button.mac-close,
+#cancel-transition.mac-close {
+  background: #ff5f57 !important;
+  border: 1px solid #df4740 !important;
+  border-radius: 50%;
+  width: 15px !important;
+  height: 15px !important;
+  min-width: 15px;
+  padding: 0 !important;
+  line-height: 12px;
+  font-size: 13px !important;
+  color: transparent !important;
+  display: inline-grid;
+  place-items: center;
+  cursor: pointer;
+  box-shadow: inset 0 1px 1px #ffffff44;
+}
+.mac-close:hover,
+.mac-close:focus-visible,
+.close-button.mac-close:hover,
+#cancel-transition.mac-close:hover {
+  color: #721b16 !important;
+}
+.close-button.mac-close {
+  left: 16px;
+  right: auto;
+  top: 16px;
+}
+#close-atmosphere {
+  position: absolute;
+  left: 14px;
+  top: 14px;
+}
+.atmosphere {
+  padding-top: 42px;
+}
+#exhibit-actions {
+  padding-left: 45px;
+}
+#close-inspection {
+  position: absolute;
+  left: 15px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+#transition-effect[data-effect="tnt-white"] {
+  background: #fff;
+  opacity: var(--effect);
+}
+#transition-effect[data-effect="tnt-black"] {
+  background: radial-gradient(ellipse, #060606 20%, #101010e6 50%, #11111188);
+  opacity: var(--effect);
+}
+#transition-effect[data-effect="exhaust"] {
+  background: radial-gradient(
+    ellipse at var(--exhaust-x, 50%) var(--exhaust-y, 80%),
+    #eee5d1 5%,
+    #eee5d1db 45%,
+    transparent 85%
+  );
+}
+.entrance-center .kl-monogram {
+  position: absolute;
+  width: 170px;
+  height: 96px;
+  left: 50%;
+  top: 42%;
+  margin: 0;
+  transform: translate(-50%, -50%);
+  opacity: 0;
+  stroke-width: 2.5;
+  animation: kl-stage 3.7s ease both;
+}
+.entrance-center .kl-monogram path {
+  stroke-dasharray: 400;
+  stroke-dashoffset: 400;
+  animation: kl-write 3.7s ease both;
+}
+@keyframes kl-stage {
+  0%,
+  17% {
+    opacity: 0;
+  }
+  24%,
+  38% {
+    opacity: 1;
+  }
+  45%,
+  100% {
+    opacity: 0;
+  }
+}
+@keyframes kl-write {
+  0%,
+  17% {
+    stroke-dashoffset: 400;
+  }
+  38%,
+  100% {
+    stroke-dashoffset: 0;
+  }
+}
+@media (max-width: 1000px) {
+  .introduction {
+    min-height: 940px;
+    height: 112svh;
+  }
+  .intro-copy {
+    padding-top: 100px;
+  }
+  .intro-copy h1 {
+    font-size: 60px;
+    margin-bottom: 14px;
+  }
+  .intro-lead {
+    font-size: 24px;
+    margin-bottom: 14px;
+  }
+  .intro-body {
+    font-size: 11px;
+    line-height: 1.7;
+  }
+  .intro-footnote {
+    display: none;
+  }
+  .profile-role {
+    font-size: 9px;
+    margin: -5px 0 16px;
+  }
+  .intro-copy .primary-link {
+    font-size: 11px;
+    margin-top: 3px;
+  }
+  .roof-controls {
+    padding: 0 8px;
+    gap: 10px;
+  }
+  .roof-controls nav {
+    gap: 12px;
+    font-size: 16px;
+  }
+  .roof-name {
+    display: none;
+  }
+  .roof-controls .nav-pair {
+    width: 185px;
+  }
+  .roof-controls .nav-pair a {
+    font-size: 16px;
+  }
+  .portrait-caption {
+    display: none;
+  }
+}
+
+/* Keep the introduction below the architectural navigation and beside the door. */
+@media (min-width: 1001px) {
+  .intro-copy {
+    width: 350px;
+    max-width: 350px;
+    margin-left: 80px;
+    padding-top: 0;
+    transform: translateY(115px);
+  }
+  .intro-copy h1 {
+    font-size: 72px;
+    margin-bottom: 12px;
+  }
+  .intro-copy .eyebrow {
+    margin-bottom: 12px;
+  }
+  .intro-copy .intro-lead {
+    font-size: 30px;
+    margin-bottom: 18px;
+  }
+  .intro-copy .profile-role {
+    margin-bottom: 16px;
+  }
+  .intro-copy .intro-body {
+    font-size: 12px;
+    line-height: 1.7;
+  }
+  .intro-copy .primary-link {
+    margin-top: 20px;
+  }
+  .roof-name {
+    visibility: hidden;
+  }
+}
+@media (min-width: 1001px) {
+  .collection-index {
+    margin-top: 0;
+    position: absolute;
+    right: 6.4%;
+    top: 40px;
+  }
+  .gallery-heading {
+    position: relative;
+    z-index: 1;
+  }
+}
+.roof-controls {
+  justify-content: center;
+}
+.roof-name {
+  display: none;
+}
+.roof-controls nav {
+  margin-left: 0;
+}
+@media (min-width: 1001px) {
+  .cabinet-controls {
+    top: 650px;
+  }
+  .collection-index .project-item {
+    padding: 7px 0;
+  }
+  .collection-index .project-name {
+    font-size: 16px;
+  }
+}
+body[data-location="interior"] .introduction { visibility: hidden; }
