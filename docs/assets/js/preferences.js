@@ -1,0 +1,24 @@
+export function safeRead(storage, key) {
+  try {
+    return storage?.getItem(key) ?? null;
+  } catch {
+    return null;
+  }
+}
+export function safeWrite(storage, key, value) {
+  try {
+    storage?.setItem(key, value);
+  } catch {
+    /* Preferences still work in memory. */
+  }
+}
+export function readPreferences(storage, reduced = false) {
+  const theme = safeRead(storage, "gallery.theme");
+  const weather = safeRead(storage, "gallery.weather");
+  const motion = safeRead(storage, "gallery.motion");
+  return {
+    theme: ["light", "dark"].includes(theme) ? theme : "light",
+    weather: ["clear", "cloudy", "storm"].includes(weather) ? weather : "clear",
+    motion: motion === null ? !reduced : motion !== "off",
+  };
+}

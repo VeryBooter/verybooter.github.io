@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#eee9df" />
+    <meta
+      name="description"
+      content="Kevin Li's cabinet of curiosities. An interactive gallery of engineering, software, design, and everyday discoveries."
+    />
+    <title>Kevin Li — A Cabinet of Curiosities</title>
+    <link rel="icon" type="image/svg+xml" href="/assets/images/logo.svg" />
+    <link rel="stylesheet" href="/assets/css/style.css" />
+    <script type="module" src="/assets/js/main.js"></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#gallery">Skip to the collection</a>
+    <div id="stage" aria-label="An interactive classical gallery">
+      <canvas
+        id="scene"
+        aria-label="Select an exhibit, or use the collection index below"
+      ></canvas>
+    </div>
+    <div class="grain" aria-hidden="true"></div>
+    <header class="site-header">
+      <a class="brand" href="#about" aria-label="Kevin Li, introduction"
+        ><img
+          src="/assets/images/logo.svg"
+          alt=""
+          width="35"
+          height="35"
+        /><span
+          >KEVIN LI<span class="brand-sub">A PERSONAL COLLECTION</span></span
+        ></a
+      >
+      <nav aria-label="Main navigation">
+        <a href="#about">About</a
+        ><a href="#gallery">Gallery <span class="nav-count">13</span></a
+        ><a href="#contact">Contact <span aria-hidden="true">↗</span></a>
+      </nav>
+      <button
+        class="icon-button settings-toggle"
+        aria-label="Open atmosphere controls"
+        aria-expanded="false"
+        aria-controls="atmosphere"
+      >
+        ☷
+      </button>
+    </header>
+    <aside id="atmosphere" class="atmosphere" aria-label="Atmosphere controls">
+      <span class="control-label">MAKE YOURSELF AT HOME</span>
+      <div class="control-row">
+        <span>Lighting</span>
+        <div role="group" aria-label="Lighting">
+          <button data-theme="light" aria-pressed="true">Day</button
+          ><button data-theme="dark" aria-pressed="false">Night</button>
+        </div>
+      </div>
+      <div class="control-row">
+        <label for="weather">Weather</label
+        ><select id="weather">
+          <option value="clear">Clear sky</option>
+          <option value="cloudy">Cloudy</option>
+          <option value="storm">Rainstorm</option>
+        </select>
+      </div>
+      <div class="control-row">
+        <span>Motion</span><button id="motion" aria-pressed="true">On</button>
+      </div>
+      <button id="replay" class="text-button">
+        Replay the entrance <span aria-hidden="true">↺</span>
+      </button>
+    </aside>
+    <main>
+      <section id="about" class="introduction section">
+        <div class="intro-copy">
+          <p class="eyebrow">
+            <span class="small-rule"></span> WELCOME TO MY LITTLE MUSEUM
+          </p>
+          <h1>Kevin Li<span class="title-dot">.</span></h1>
+          <p class="intro-lead">
+            A curious mind.<br />A world of <em>possibilities.</em>
+          </p>
+          <p class="intro-body">
+            Exploring physics and quantum computing at Pitt, with a love for
+            computer science and building things—both physical and digital.
+          </p>
+          <p class="intro-body">
+            This is a collection of things I make, questions I follow, and small
+            joys along the way.
+          </p>
+          <a class="primary-link" href="#gallery"
+            >Step inside the collection <span aria-hidden="true">↘</span></a
+          >
+          <div class="intro-footnote">
+            <span class="tiny-cross" aria-hidden="true">✧</span> Engineering ·
+            Software · Design · Life
+          </div>
+        </div>
+        <div class="portrait-caption">
+          <span class="eyebrow">FIG. 01 / THE COLLECTOR</span
+          ><span>Portrait placeholder · a little room for me.</span>
+        </div>
+        <a href="#gallery" class="scroll-cue"
+          ><span>SCROLL TO EXPLORE</span><span aria-hidden="true">↓</span></a
+        >
+        <p class="scene-caption">
+          A cabinet of curiosities, always in progress.
+        </p>
+      </section>
+      <section
+        id="gallery"
+        class="gallery section"
+        aria-labelledby="gallery-title"
+      >
+        <div class="gallery-heading">
+          <p class="eyebrow">01 — THE COLLECTION</p>
+          <h2 id="gallery-title">Every object<br />has a <em>story.</em></h2>
+          <p>Open the cabinet. Follow your curiosity.</p>
+        </div>
+        <div class="cabinet-controls">
+          <button id="doors" class="pill" aria-pressed="false">
+            Open the cabinet <span aria-hidden="true">↔</span></button
+          ><span id="scene-status" role="status"
+            >Select an object or use the index.</span
+          >
+        </div>
+        <aside class="collection-index" aria-label="Collection index">
+          <div class="index-heading">
+            <span>THE EXHIBITS</span><span>01 — 13</span>
+          </div>
+          <div id="project-index"></div>
+          <p class="index-note">
+            A living collection. Project stories are editable template content.
+          </p>
+        </aside>
+      </section>
+      <section
+        id="contact"
+        class="contact section"
+        aria-labelledby="contact-title"
+      >
+        <div>
+          <p class="eyebrow">02 — KEEP IN TOUCH</p>
+          <h2 id="contact-title">
+            Good things start<br />with a <em>conversation.</em>
+          </h2>
+          <p>
+            A question, a shared interest, or an idea to build together.<br />There’s
+            always room for something new.
+          </p>
+          <a class="primary-link" href="https://github.com/VeryBooter"
+            >Find me on GitHub <span aria-hidden="true">↗</span></a
+          >
+        </div>
+        <img src="/assets/images/logo.svg" alt="" width="160" height="160" />
+        <footer>
+          <span>© <span id="year">2026</span> Kevin Li</span
+          ><span>BUILT WITH CURIOSITY</span
+          ><a href="#about">Back to the entrance ↑</a>
+        </footer>
+      </section>
+    </main>
+    <div id="object-label" role="status" hidden></div>
+    <div id="transition" hidden>
+      <span id="transition-title"></span
+      ><button id="skip-transition">Skip animation →</button
+      ><button id="cancel-transition" aria-label="Cancel animation">×</button>
+    </div>
+    <dialog id="project-dialog" aria-labelledby="detail-title">
+      <button id="close-detail" class="close-button" aria-label="Close exhibit">
+        ×
+      </button>
+      <div class="detail-number" id="detail-number"></div>
+      <p class="eyebrow" id="detail-category"></p>
+      <h2 id="detail-title"></h2>
+      <p class="detail-summary" id="detail-summary"></p>
+      <span id="placeholder-label" class="placeholder-label"
+        >EDITABLE PROJECT STORY</span
+      >
+      <div id="detail-body"></div>
+      <div id="detail-links"></div>
+      <button id="back-gallery" class="primary-link">
+        Back to the gallery <span aria-hidden="true">↙</span>
+      </button>
+    </dialog>
+    <div id="entrance" hidden>
+      <div class="entrance-center">
+        <svg
+          viewBox="0 0 64 64"
+          fill="none"
+          aria-label="Kevin Li's single-electron logo"
+          role="img"
+        >
+          <path d="M32 3v9M12 40a23 23 0 1 1 40 0M13 46l19 15 19-15" />
+          <circle cx="32" cy="32" r="7" />
+          <path d="M28 32h8" /></svg
+        ><span>KEVIN LI</span>
+        <p>A CABINET OF CURIOSITIES</p>
+      </div>
+      <button id="skip-entrance">Skip entrance →</button>
+    </div>
+    <noscript
+      ><div class="noscript">
+        This interactive collection uses JavaScript. You can still read the
+        introduction and
+        <a href="https://github.com/VeryBooter">visit Kevin’s GitHub</a>.
+      </div></noscript
+    >
+  </body>
+</html>
