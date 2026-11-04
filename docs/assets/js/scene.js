@@ -1,3 +1,5 @@
+import { buildAttendant, poseAttendant } from "./attendants.js";
+import { buildInteriorFeatures } from "./interior.js";
 import { buildDaylight, updateDaylight } from "./daylight.js";
 import { animateHouse } from "./house-sequence.js";
 import * as T from "three";
@@ -23,6 +25,7 @@ export class GalleryScene {
       onFrame,
       onGameButton,
       onEnterRoom,
+      onToggleCabinet,
       onLocationChange,
     } = {},
   ) {
@@ -66,7 +69,23 @@ export class GalleryScene {
     this.camera = new T.PerspectiveCamera(38, 1, 0.1, 2000);
     this.raycaster = new T.Raycaster();
     this.room = buildRoom(this.scene);
+    new T.TextureLoader().load(
+      new URL(
+        "../images/Fuller-black-hair-in-oil-portrait.png",
+        import.meta.url,
+      ).href,
+      (texture) => {
+        texture.colorSpace = T.SRGBColorSpace;
+        const material = this.room.getObjectByName(
+          "supplied-oil-portrait",
+        ).material;
+        material.map = texture;
+        material.needsUpdate = true;
+      },
+    );
     this.collection = buildCabinet(this.scene, projects);
+    this.mirror = buildInteriorFeatures(this.scene);
+    this.setAttendant("roman");
     this.vectorArtworkLoaded = false;
     new SVGLoader().load(
       new URL("../images/face-drawing.svg", import.meta.url).href,
@@ -113,6 +132,10 @@ export class GalleryScene {
     this.wallIndex.scale.setScalar(0.018);
     this.wallIndex.element.dataset.wallMounted = "true";
     this.scene.add(this.wallIndex);
+    this.futureBoard = new CSS3DObject(document.querySelector("#future-board"));
+    this.futureBoard.position.set(8.4, 0.3, -32.65);
+    this.futureBoard.scale.setScalar(0.014);
+    this.scene.add(this.futureBoard);
     this.doorControl = new CSS3DObject(document.querySelector("#enter-room"));
     this.doorControl.position.set(0, 2.2, -4.65);
     this.doorControl.scale.setScalar(0.02);
@@ -141,24 +164,36 @@ export class GalleryScene {
     this.scene.add(this.fill);
     this.clouds = new T.Group();
     this.scene.add(this.clouds);
-    const cloudMat = new T.MeshBasicMaterial({
-      color: "#c8c5b6",
+    const cloudMat = new T.ShaderMaterial({
       transparent: true,
-      opacity: 0.13,
       depthWrite: false,
+      side: T.DoubleSide,
+      uniforms: { shade: { value: new T.Color("#d1d5da") } },
+      vertexShader: `varying vec2 vUv; void main(){ vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.); }`,
+      fragmentShader: `varying vec2 vUv; uniform vec3 shade;
+        float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
+        float noise(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(hash(i),hash(i+vec2(1,0)),f.x),mix(hash(i+vec2(0,1)),hash(i+vec2(1,1)),f.x),f.y);}
+        void main(){vec2 p=vUv*vec2(9.,5.);float n=0.,amp=.5;for(int i=0;i<5;i++){n+=amp*noise(p);p=p*2.03+3.7;amp*=.5;}
+        float edge=1.-smoothstep(.23,.51,length((vUv-.5)*vec2(.85,1.1)));
+        float density=smoothstep(.23,.67,n)*edge;
+        gl_FragColor=vec4(shade*mix(.62,1.12,vUv.y)*(.85+.25*n),density*.88);}`,
     });
-    for (let i = 0; i < 6; i++) {
-      const cloud = new T.Mesh(new T.SphereGeometry(1, 12, 8), cloudMat);
-      cloud.position.set(i * 6 - 17, 12, -8 - i);
-      cloud.scale.set(4, 1, 2);
+    for (let i = 0; i < 12; i++) {
+      const cloud = new T.Mesh(new T.PlaneGeometry(24, 12), cloudMat);
+      cloud.position.set(
+        (i % 4) * 21 - 32,
+        20 + Math.sin(i * 2) * 3,
+        -24 - Math.floor(i / 4) * 16,
+      );
+      cloud.rotation.z = Math.sin(i) * 0.12;
       this.clouds.add(cloud);
     }
     const rainPoints = [];
-    for (let i = 0; i < 180; i++) {
+    for (let i = 0; i < 650; i++) {
       const x = (Math.sin(i * 73.7) * 0.5 + 0.5) * 35 - 17;
-      const y = (i / 180) * 18;
+      const y = (i / 650) * 24;
       const z = (Math.cos(i * 44.3) * 0.5 + 0.5) * 18 - 7;
-      rainPoints.push(x, y, z, x - 0.06, y - 0.3, z);
+      rainPoints.push(x, y, z, x - 0.06, y - 0.65, z);
     }
     const rainGeometry = new T.BufferGeometry();
     rainGeometry.setAttribute(
@@ -170,7 +205,7 @@ export class GalleryScene {
       new T.LineBasicMaterial({
         color: "#647c7c",
         transparent: true,
-        opacity: 0.22,
+        opacity: 0.6,
       }),
     );
     this.scene.add(this.rain);
@@ -210,6 +245,12 @@ export class GalleryScene {
         -32.65,
       );
       this.wallIndex.scale.setScalar(this.mobile ? 0.015 : 0.018);
+      this.futureBoard.position.set(
+        this.mobile ? -6.6 : 8.4,
+        this.mobile ? 7.8 : 0.3,
+        -32.65,
+      );
+      this.futureBoard.scale.setScalar(this.mobile ? 0.009 : 0.011);
       this.renderer.setSize(innerWidth, innerHeight, false);
       this.uiRenderer.setSize(innerWidth, innerHeight);
       this.room.children
@@ -249,7 +290,7 @@ export class GalleryScene {
       if (!this.visible || this.active) return;
       const id = this.pick(e);
       canvas.style.cursor = id || this.pickEntrance(e) ? "pointer" : "default";
-      onHover?.(id);
+      onHover?.(id === "cabinet-knob" ? null : id);
     };
     this.pointerDown = (e) => {
       this.pointerStart = { x: e.clientX, y: e.clientY };
@@ -273,7 +314,8 @@ export class GalleryScene {
       )
         return;
       const id = this.pick(e);
-      if (id) onSelect?.(id);
+      if (id === "cabinet-knob") onToggleCabinet?.();
+      else if (id) onSelect?.(id);
     };
     this.leave = () => onHover?.(null);
     canvas.addEventListener("pointermove", this.handleMove);
@@ -285,6 +327,22 @@ export class GalleryScene {
     this.last = performance.now();
     this.tick = this.tick.bind(this);
     this.resume();
+  }
+  setAttendant(kind) {
+    if (this.attendant) {
+      this.attendant.removeFromParent();
+      const geometries = new Set(),
+        materials = new Set();
+      this.attendant.traverse((item) => {
+        if (item.geometry) geometries.add(item.geometry);
+        if (item.material) materials.add(item.material);
+      });
+      geometries.forEach((item) => item.dispose());
+      materials.forEach((item) => item.dispose());
+    }
+    this.attendant = buildAttendant(kind);
+    this.attendant.visible = false;
+    this.collection.cabinet.add(this.attendant);
   }
   setPreferences(preferences) {
     this.preferences = { ...preferences };
@@ -323,7 +381,7 @@ export class GalleryScene {
     this.open = open;
   }
   pick(event) {
-    if (this.entryProgress < 0.95 || !this.open) return null;
+    if (this.entryProgress < 0.95) return null;
     const rect = this.canvas.getBoundingClientRect();
     this.raycaster.setFromCamera(
       new T.Vector2(
@@ -333,19 +391,29 @@ export class GalleryScene {
       this.camera,
     );
     const hits = this.raycaster.intersectObjects(
-      [...this.collection.exhibits.values()],
+      [...this.collection.exhibits.values()]
+        .filter(
+          (item) =>
+            this.open ||
+            ["lamp", "satellite", "drawing"].includes(item.userData.projectId),
+        )
+        .concat(this.collection.doors.map(({ hinge }) => hinge)),
       true,
     );
-    return hits[0]?.object.userData.projectId || null;
+    const hit = hits[0]?.object;
+    return hit?.userData.cabinetKnob
+      ? "cabinet-knob"
+      : hit?.userData.projectId || null;
   }
   select(id, motion = true, duration = 1500) {
     this.reset();
-    this.open = true;
+    if (!["lamp", "satellite", "drawing"].includes(id)) this.open = true;
     this.active = { id, start: performance.now(), motion, duration };
     this.collection.cabinet.visible = true;
     this.onHover?.(null);
   }
   reset() {
+    if (this.attendant) this.attendant.visible = false;
     const { exhibits, shoulder, elbow, beam, arm, grip, upper, lower, pad } =
       this.collection;
     for (const object of exhibits.values()) {
@@ -468,16 +536,57 @@ export class GalleryScene {
       );
       item.position.add(target.clone().sub(centre).multiplyScalar(a));
     };
-    switch (id) {
-      case "sailbot":
-        present(4);
-        item.position.x += Math.sin(p * Math.PI) * 3;
-        item.rotation.z += Math.sin(p * Math.PI * 3) * 0.08;
+    if (["sailbot", "voxelcraft", "kichua"].includes(id) && this.attendant) {
+      const actor = this.attendant;
+      actor.visible = true;
+      actor.position.copy(target).add(new T.Vector3(1.1, -1.9, 0));
+      actor.scale.setScalar(1.2);
+      if (this.camera) {
+        const gaze = this.collection.cabinet.worldToLocal(
+          this.camera.position.clone(),
+        );
+        gaze.y = actor.position.y;
+        actor.lookAt(this.collection.cabinet.localToWorld(gaze));
+      }
+      poseAttendant(actor, p);
+      actor.updateWorldMatrix(true, true);
+      const hand = this.collection.cabinet.worldToLocal(
+        actor.userData.hand.getWorldPosition(new T.Vector3()),
+      );
+      const arrival =
+        id === "kichua" ? target.clone().add(new T.Vector3(-12, 6, 0)) : base;
+      item.position.lerpVectors(
+        arrival,
+        hand,
+        T.MathUtils.smoothstep(p, 0, 0.55),
+      );
+      if (id === "kichua")
+        parts.wings.forEach(
+          (wing, i) =>
+            (wing.rotation.z =
+              (i ? -1 : 1) * Math.sin(p * 85) * (p < 0.55 ? 0.8 : 0.05)),
+        );
+      item.position.y += Math.sin(Math.min(1, p / 0.55) * Math.PI) * 1.5;
+      item.visible = p < 0.65;
+      if (id === "voxelcraft") {
+        item.scale.multiplyScalar(1 + Math.sin(p * 45) * 0.08);
+        actor.userData.arms[0].rotation.x =
+          -T.MathUtils.smoothstep(p, 0.18, 0.29) * 1.45;
+        actor.userData.arms[0].rotation.z = -0.25;
+        item.visible = p < 0.4;
+        this.particles.material = palette.black;
+        if (p >= 0.28 && p < 0.4)
+          this.animateParticles(item, (p - 0.28) / 0.12);
+        else this.particles.visible = false;
         this.onFrame?.({
-          effect: "sail",
-          strength: Math.sin((Math.max(0, p - 0.35) / 0.65) * Math.PI),
+          effect: p > 0.28 && p < 0.4 ? "tnt-white" : null,
+          strength:
+            p > 0.28 && p < 0.4 ? Math.sin(((p - 0.28) / 0.12) * Math.PI) : 0,
         });
-        break;
+      }
+      return;
+    }
+    switch (id) {
       case "rocket": {
         const pad = new T.Vector3(3.4, 0.4, 2.8);
         this.collection.pad.visible = true;
@@ -515,27 +624,8 @@ export class GalleryScene {
         item.position.y += Math.sin(p * Math.PI) * 0.3;
         break;
       case "cooking":
-        present(3);
         this.animateSteam(item, now, true);
         break;
-      case "voxelcraft": {
-        item.scale.multiplyScalar(
-          1 + Math.sin(p * Math.PI * 5) * 0.1 * (1 - p),
-        );
-        item.visible = p < 0.48 || p >= 1;
-        this.particles.material = palette.black;
-        this.animateParticles(item, p);
-        const flash = (p >= 0.3 && p < 0.35) || (p >= 0.48 && p < 0.53);
-        this.onFrame?.({
-          effect: flash ? "tnt-white" : p >= 0.53 ? "tnt-black" : null,
-          strength: flash
-            ? 1
-            : p >= 0.53
-              ? Math.sin(((p - 0.53) / 0.47) * Math.PI) * 0.85
-              : 0,
-        });
-        break;
-      }
       case "hackathon": {
         const direction = this.camera
           ? item
@@ -692,6 +782,8 @@ export class GalleryScene {
     );
     this.roofControls.visible = this.entryProgress < 0.55;
     this.wallIndex.visible = this.entryProgress > 0.99;
+    this.futureBoard.visible = this.entryProgress > 0.99;
+    this.mirror.visible = this.entryProgress > 0.9;
     updateDaylight(this);
     this.doorControl.visible = this.entryProgress < 0.2;
     const pose = cameraPose(

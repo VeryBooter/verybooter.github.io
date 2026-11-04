@@ -108,6 +108,15 @@ export const projects = [
     "Add the club’s confirmed name, your role, and the games you have made together.",
     "pixels",
   ],
+  [
+    "kichua",
+    "Kichua Research",
+    "Language research",
+    "Research",
+    "A language, its speakers, and questions worth studying.",
+    "Add the verified research question, your role, methods, and findings. This space deliberately makes no claims about results or affiliations.",
+    "toucan",
+  ],
 ].map(
   (
     [id, title, subtitle, category, summary, description, animation],
@@ -120,11 +129,18 @@ export const projects = [
     summary,
     description,
     animation,
-    duration: id === "house" ? 9000 : id === "cooking" ? 2600 : 1500,
-    number: String(index + 1).padStart(2, "0"),
+    duration:
+      id === "house"
+        ? 9000
+        : ["sailbot", "voxelcraft", "kichua"].includes(id)
+          ? 3800
+          : id === "cooking"
+            ? 2600
+            : 1500,
+    number: id === "kichua" ? "R" : String(index + 1).padStart(2, "0"),
     placeholder: true,
     links: [],
-    presentation: ["photography", "lamp"].includes(id)
+    presentation: ["photography", "lamp", "cooking"].includes(id)
       ? "effect"
       : id === "drawing"
         ? "display"

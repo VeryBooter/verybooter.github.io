@@ -19,6 +19,15 @@ export function readPreferences(storage, reduced = false) {
   return {
     theme: ["light", "dark"].includes(theme) ? theme : "light",
     weather: ["clear", "cloudy", "storm"].includes(weather) ? weather : "clear",
+    clouds:
+      safeRead(storage, "gallery.clouds") === null
+        ? ["cloudy", "storm"].includes(weather)
+        : safeRead(storage, "gallery.clouds") === "on",
+    rain:
+      safeRead(storage, "gallery.rain") === null
+        ? weather === "storm"
+        : safeRead(storage, "gallery.rain") === "on",
+    thunder: safeRead(storage, "gallery.thunder") === "on",
     motion: motion === null ? !reduced : motion !== "off",
   };
 }

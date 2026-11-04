@@ -1343,7 +1343,7 @@ body:has(#exhibit-actions:not([hidden])) .collection-index {
   inset: 0;
   pointer-events: none;
   z-index: 3;
-  overflow: hidden;
+  overflow: clip;
 }
 .roof-controls {
   width: 1240px;
@@ -2081,4 +2081,159 @@ body.no-webgl .collection-index {
 .roof-controls .nav-pair a:last-child,
 .roof-controls .nav-pair a:last-child .nav-count {
   color: #fff;
+}
+
+/* Polished brass entrance hardware retains a full keyboard hit target. */
+.enter-room {
+  width: 58px;
+  height: 100px;
+  border-radius: 48% 48% 45% 45%;
+  border: 3px double #78551f;
+  background: linear-gradient(
+    110deg,
+    #624018,
+    #f8e3a1 24%,
+    #b68a3b 47%,
+    #ffe9af 63%,
+    #765024
+  );
+  box-shadow:
+    inset 0 0 0 5px #c3a262,
+    3px 6px 9px #0007;
+}
+.door-knob {
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  border: 1px solid #9f783d;
+  background: radial-gradient(
+    circle at 30% 25%,
+    #fff9da 0%,
+    #f7d986 16%,
+    #b38532 43%,
+    #5e3d14 73%,
+    #dfb859 96%
+  );
+  box-shadow:
+    4px 7px 8px #0007,
+    inset -2px -2px 3px #573c1a;
+}
+.enter-room:hover .door-knob {
+  filter: brightness(1.15);
+}
+.enter-room:focus-visible {
+  outline: 3px solid #fff;
+  outline-offset: 5px;
+}
+
+#sky-phase {
+  font-size: 27px;
+  line-height: 1;
+}
+
+.wall-cabinet-toggle {
+  width: 100%;
+  border: 0;
+  border-bottom: 1px solid #af915d;
+  background: transparent;
+  color: #30291e;
+  padding: 5px;
+  font-size: 13px;
+  cursor: pointer;
+}
+.collection-index[data-wall-mounted] {
+  height: auto;
+  min-height: 230px;
+}
+#future-board {
+  width: 290px;
+  padding: 20px;
+  border: 9px ridge #694c31;
+  background: #253a33;
+  color: #f1eed9;
+  font-family: var(--serif);
+  text-align: left;
+  pointer-events: auto;
+}
+#future-board > span {
+  font-family: var(--sans);
+  font-size: 11px;
+  letter-spacing: 1px;
+}
+#future-board h3 {
+  font-size: 32px;
+  margin: 12px 0;
+  font-weight: 400;
+}
+#future-board p {
+  font-size: 14px;
+}
+#future-board > div {
+  font-size: 32px;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+.attendant-options {
+  display: flex;
+  gap: 4px;
+  padding-top: 8px;
+}
+.attendant-options button {
+  flex: 1;
+  font-size: 11px;
+  padding: 6px 2px;
+  border: 1px solid #a48754;
+  background: #eee4cf;
+  color: #30291e;
+  cursor: pointer;
+}
+.attendant-options button[aria-pressed="true"] {
+  background: #4b5e50;
+  color: white;
+}
+#project-dialog[data-presentation="roman"] {
+  background: linear-gradient(90deg, #c6a76b, #f1e0ad 8%, #ead39b 92%, #bb975c);
+  border-block: 14px ridge #b59760;
+  border-radius: 7px;
+  color: #34291b;
+}
+#project-dialog[data-presentation="butler"] {
+  background: #e9f0f4;
+  border: 15px solid #20252a;
+  border-radius: 28px;
+  color: #202a32;
+  box-shadow: 0 25px 90px #0008;
+}
+#project-dialog[data-presentation="fox"] {
+  background: linear-gradient(100deg, #eee1bc, #faf0cc);
+  border: 12px solid #49375d;
+  border-left: 24px ridge #69517d;
+  color: #35273e;
+  box-shadow: 0 0 45px #9d80cc66;
+}
+
+.collection-index .research-entry {
+  display: block;
+  height: 30px;
+  margin-top: 6px;
+  font-size: 12px;
+}
+.collection-index .research-entry .project-name {
+  display: inline;
+  font-size: 12px;
+}
+.collection-index .research-entry .project-number,
+.collection-index .research-entry small {
+  display: none;
 }

@@ -67,7 +67,9 @@ for (const [name, width, height] of [
     const wall = await page.evaluate(() => galleryDiagnostics().wallIndex);
     expect(wall.attached && wall.visible).toBe(true);
     expect(wall.position[2]).toBeLessThan(-32);
-    await expect(page.locator(".project-number")).toHaveCount(12);
+    await expect(page.locator("#project-index .project-number")).toHaveCount(
+      12,
+    );
     await capture(page, `${name}-cabinet-closed`);
     await page.locator("#doors").click();
     await expect(page.locator("#doors")).toHaveAttribute(
@@ -220,7 +222,7 @@ test("project links bypass the entrance and browser Back closes a selected proje
   await ready(page, "#project/rocket");
   await expect(page.locator("#entrance")).not.toBeVisible();
   await expect(page.locator("#detail-title")).toHaveText("SOAR / Rocket");
-  await page.locator("#back-gallery").click();
+  await page.locator("#close-detail").click();
   await expect(page).toHaveURL(/#gallery$/);
   await page.locator('[data-project="drone"]').click();
   await expect(page.locator("#project-dialog")).toBeVisible();
@@ -247,38 +249,13 @@ test("roof controls, vector artwork, two white flashes, nozzle exhaust, and red 
   expect(inside.shelfPosition[2]).toBeLessThan(inside.cameraPosition[2]);
   await page.clock.pauseAt(new Date(Date.now() + 120000));
   await page.locator('[data-project="voxelcraft"]').click();
-  await page.clock.runFor(480);
-  await expect(page.locator("#transition-effect")).toHaveAttribute(
-    "data-effect",
-    "tnt-white",
-  );
-  await expect(page.locator("#transition-effect")).toHaveCSS(
-    "background-color",
-    "rgb(255, 255, 255)",
-  );
-  await expect(page.locator("#transition-effect")).toHaveCSS("opacity", "1");
-  expect(await page.evaluate(() => galleryDiagnostics().location)).toBe(
-    "interior",
-  );
-  await capture(page, "tnt-first-white");
-  await page.clock.runFor(120);
-  await expect(page.locator("#transition-effect")).not.toHaveAttribute(
-    "data-effect",
-    "tnt-white",
-  );
-  await page.clock.runFor(150);
-  await expect(page.locator("#transition-effect")).toHaveAttribute(
-    "data-effect",
-    "tnt-white",
-  );
-  await capture(page, "tnt-second-white");
-  await page.clock.runFor(300);
-  await expect(page.locator("#transition-effect")).toHaveAttribute(
-    "data-effect",
-    "tnt-black",
-  );
-  await capture(page, "tnt-black-debris");
-  await page.clock.runFor(450);
+  await page.clock.fastForward(1292);
+  await expect(page.locator("#transition-effect")).toHaveAttribute("data-effect", "tnt-white");
+  await capture(page, "tnt-interrupted-white");
+  await page.clock.fastForward(700);
+  await expect(page.locator("#transition-effect")).toHaveAttribute("data-effect", "");
+  await capture(page, "tnt-guard-interruption");
+  await page.clock.fastForward(1808);
   await page.locator("#close-detail").click();
   await page.locator('[data-project="rocket"]').click();
   await page.clock.runFor(1125);
@@ -401,4 +378,100 @@ test("original PDF face is shown as vectors and wall numbers have accessible pro
   const rect = await page.locator(".collection-index").boundingBox();
   expect(rect.width).toBeLessThan(350);
   expect(rect.height).toBeLessThan(250);
+});
+
+test("weather toggles remain independent and render in the courtyard", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await ready(page);
+  await page.locator('[data-condition="rain"]').click();
+  await page.locator('[data-condition="thunder"]').click();
+  let state = await page.evaluate(() => galleryDiagnostics().preferences);
+  expect(state.rain).toBe(true);
+  expect(state.thunder).toBe(true);
+  expect(state.clouds).toBe(false);
+  await page.locator('[data-condition="clouds"]').click();
+  await page.locator("#sky-phase").click();
+  await capture(page, "weather-moon-rain-thunder");
+  await page.locator('[data-condition="rain"]').click();
+  state = await page.evaluate(() => galleryDiagnostics().preferences);
+  expect(state).toMatchObject({
+    theme: "dark",
+    clouds: true,
+    rain: false,
+    thunder: true,
+  });
+  await page.reload();
+  await ready(page);
+  expect(
+    await page.evaluate(() => galleryDiagnostics().preferences),
+  ).toMatchObject({ theme: "dark", clouds: true, rain: false, thunder: true });
+  await page.locator("#sky-phase").click();
+  await capture(page, "weather-day-clouds");
+});
+
+test("portrait, wall controls and attendants hand off project stories", async ({
+  page,
+}) => {
+  test.setTimeout(120000);
+  await page.setViewportSize({ width: 1440, height: 900 });
+  const errors = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  await page.clock.install();
+  await ready(page);
+  await capture(page, "supplied-portrait-entrance");
+  await enterRoom(page);
+  await page.locator("#doors").click();
+  await page.clock.runFor(600);
+  await capture(page, "interior-mirror-chalkboard");
+  await page.clock.pauseAt(new Date(Date.now() + 1000));
+  for (const kind of ["roman", "butler", "fox"]) {
+    await page.locator(`[data-attendant="${kind}"]`).click();
+    await page.locator('[data-project="sailbot"]').click();
+    await page.clock.fastForward(2700);
+    await capture(page, `attendant-${kind}-handoff`);
+    await page.locator("#skip-transition").click();
+    await expect(page.locator("#project-dialog")).toHaveAttribute(
+      "data-presentation",
+      kind,
+    );
+    await page.locator("#close-detail").click();
+  }
+  expect(errors).toEqual([]);
+});
+
+test("research toucan arrives and the guard interrupts TNT", async ({
+  page,
+}) => {
+  test.setTimeout(120000);
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.clock.install();
+  await ready(page);
+  await enterRoom(page);
+  await page.clock.pauseAt(new Date(Date.now() + 1000));
+  await page.locator('[data-project="kichua"]').click();
+  await page.clock.fastForward(1600);
+  await capture(page, "kichua-toucan-arrival");
+  await page.clock.fastForward(1100);
+  await capture(page, "kichua-scroll-handoff");
+  await page.locator("#skip-transition").click();
+  await expect(page.locator("#detail-title")).toHaveText("Kichua Research");
+  await page.locator("#close-detail").click();
+  await page.locator('[data-project="voxelcraft"]').click();
+  await page.clock.fastForward(1292);
+  await capture(page, "voxelcraft-interrupted-flash");
+  await page.clock.fastForward(500);
+  await expect(page.locator("#transition-effect")).toHaveAttribute(
+    "data-effect",
+    "",
+  );
+  await capture(page, "voxelcraft-guard-stops-blast");
+  await page.clock.fastForward(900);
+  await capture(page, "voxelcraft-scroll-handoff");
+  await page.locator("#skip-transition").click();
+  await expect(page.locator("#project-dialog")).toHaveAttribute(
+    "data-presentation",
+    "roman",
+  );
 });

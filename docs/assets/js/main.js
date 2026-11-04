@@ -25,6 +25,11 @@ let cabinetOpen = false;
 let fallback = false;
 let directStory = false;
 let actionTimer;
+let attendant = ["roman", "butler", "fox"].includes(
+  safeRead(local, "gallery.attendant"),
+)
+  ? safeRead(local, "gallery.attendant")
+  : "roman";
 const controller = new GalleryController({
   onChange(state, id) {
     document.body.dataset.state = state;
@@ -95,7 +100,10 @@ for (const project of projects) {
   button.addEventListener("blur", () => showLabel(null));
   button.addEventListener("pointerenter", () => showLabel(project.id));
   button.addEventListener("pointerleave", () => showLabel(null));
-  index.append(button);
+  if (project.id === "kichua") {
+    button.classList.add("research-entry");
+    $("#research-index").append(button);
+  } else index.append(button);
 }
 function showLabel(id) {
   const label = $("#object-label");
@@ -104,6 +112,11 @@ function showLabel(id) {
     label.textContent = `${getProject(id).number} / ${getProject(id).title}`;
 }
 function openStory(project) {
+  dialog.dataset.presentation = ["voxelcraft", "sailbot", "kichua"].includes(
+    project.id,
+  )
+    ? attendant
+    : "standard";
   $("#exhibit-actions").hidden = true;
   scene?.reset();
   renderDetail(project);
@@ -156,6 +169,26 @@ $("#game-buttons")
       pressGameButton(Number(button.dataset.button)),
     ),
   );
+for (const button of document.querySelectorAll("[data-attendant]")) {
+  button.setAttribute(
+    "aria-pressed",
+    String(button.dataset.attendant === attendant),
+  );
+  button.addEventListener("click", () => {
+    if (["transition", "detail"].includes(controller.state)) closeProject();
+    attendant = button.dataset.attendant;
+    safeWrite(local, "gallery.attendant", attendant);
+    scene?.setAttendant(attendant);
+    document
+      .querySelectorAll("[data-attendant]")
+      .forEach((option) =>
+        option.setAttribute(
+          "aria-pressed",
+          String(option.dataset.attendant === attendant),
+        ),
+      );
+  });
+}
 function renderDetail(project) {
   $("#detail-number").textContent = project.number;
   $("#detail-category").textContent = `${project.number} / ${project.category}`;
@@ -186,9 +219,11 @@ function openProject(id, { fromRoute = false, animate = true } = {}) {
   if (controller.state !== "transition")
     previousFocus = document.activeElement?.matches("[data-project]")
       ? document.activeElement
-      : index.querySelector(`[data-project="${id}"]`);
-  cabinetOpen = true;
-  updateDoors();
+      : document.querySelector(`[data-project="${id}"]`);
+  if (!["lamp", "satellite", "drawing"].includes(id)) {
+    cabinetOpen = true;
+    updateDoors();
+  }
   gallery.scrollIntoView({ behavior: "instant", block: "start" });
   updateScroll();
   if (!fromRoute && project.presentation !== "effect") {
@@ -237,7 +272,6 @@ dialog.addEventListener("click", (e) => {
   }
 });
 $("#close-detail").addEventListener("click", closeProject);
-$("#back-gallery").addEventListener("click", closeProject);
 $("#skip-transition").addEventListener("click", () => controller.finish());
 $("#cancel-transition").addEventListener("click", closeProject);
 document.addEventListener("keydown", (e) => {
@@ -263,11 +297,20 @@ function applyPreferences() {
         String(button.dataset.theme === preferences.theme),
       );
   });
-  for (const button of document.querySelectorAll("[data-weather]"))
+  for (const button of document.querySelectorAll("[data-condition]"))
     button.setAttribute(
       "aria-pressed",
-      String(button.dataset.weather === preferences.weather),
+      String(preferences[button.dataset.condition]),
     );
+  $("#sky-phase").setAttribute(
+    "aria-pressed",
+    String(preferences.theme === "dark"),
+  );
+  $("#sky-phase").setAttribute(
+    "aria-label",
+    preferences.theme === "dark" ? "Switch to sunlight" : "Switch to moonlight",
+  );
+  $("#sky-phase span").textContent = preferences.theme === "dark" ? "☾" : "☀";
   $("#motion").textContent = preferences.motion ? "On" : "Off";
   $("#motion").setAttribute("aria-pressed", String(preferences.motion));
   scene?.setPreferences(preferences);
@@ -283,9 +326,25 @@ document.querySelectorAll("button[data-theme]").forEach((button) =>
     applyPreferences();
   }),
 );
-for (const button of document.querySelectorAll("[data-weather]"))
+$("#sky-phase").addEventListener("click", () => {
+  preferences.theme = preferences.theme === "dark" ? "light" : "dark";
+  safeWrite(local, "gallery.theme", preferences.theme);
+  applyPreferences();
+});
+for (const button of document.querySelectorAll("[data-condition]"))
   button.addEventListener("click", () => {
-    preferences.weather = button.dataset.weather;
+    const condition = button.dataset.condition;
+    preferences[condition] = !preferences[condition];
+    safeWrite(
+      local,
+      `gallery.${condition}`,
+      preferences[condition] ? "on" : "off",
+    );
+    preferences.weather = preferences.rain
+      ? "storm"
+      : preferences.clouds
+        ? "cloudy"
+        : "clear";
     safeWrite(local, "gallery.weather", preferences.weather);
     applyPreferences();
   });
@@ -432,6 +491,10 @@ try {
     onFailure: handleFailure,
     onGameButton: pressGameButton,
     onEnterRoom: enterGallery,
+    onToggleCabinet: () => {
+      cabinetOpen = !cabinetOpen;
+      updateDoors();
+    },
     onLocationChange: (location) => {
       document.body.dataset.location = location;
     },
@@ -443,6 +506,7 @@ try {
       overlay.style.setProperty("--effect", Math.max(0, strength));
     },
   });
+  scene.setAttendant(attendant);
   scene.setPreferences(preferences);
   if (initialProject) scene.snapInside();
   updateDoors();

@@ -112,6 +112,27 @@ export function buildObject(id) {
   const root = new T.Group();
   const parts = {};
   switch (id) {
+    case "kichua": {
+      sphere(root, 0.32, "black", [0, 0.55, 0], [0.8, 1.3, 0.8]);
+      sphere(root, 0.24, "black", [0, 0.96, 0.04]);
+      sphere(root, 0.21, "cream", [0, 0.8, 0.19], [0.85, 1.3, 0.5]);
+      sphere(root, 0.28, "orange", [0.03, 1.01, 0.33], [0.65, 0.65, 1.7]);
+      sphere(root, 0.14, "black", [0.03, 1.01, 0.7], [0.8, 0.8, 0.65]);
+      for (const side of [-1, 1]) {
+        sphere(root, 0.06, "blue", [side * 0.19, 1.01, 0.14]);
+        sphere(root, 0.025, "black", [side * 0.225, 1.02, 0.15]);
+        cylinder(root, 0.018, 0.018, 0.2, "black", [side * 0.1, 0.17, 0.02]);
+        box(root, 0.12, 0.025, 0.2, "black", [side * 0.1, 0.07, 0.08]);
+      }
+      parts.wings = [];
+      for (const side of [-1, 1]) {
+        const wing = group(root, [side * 0.24, 0.72, 0]);
+        sphere(wing, 0.25, "black", [side * 0.15, -0.13, 0], [1.2, 1.6, 0.25]);
+        parts.wings.push(wing);
+      }
+      sphere(root, 0.2, "black", [0, 0.36, -0.24], [0.6, 0.45, 1.7]);
+      break;
+    }
     case "sailbot": {
       sphere(root, 0.56, "green", [0, 0.18, 0], [1, 0.33, 0.5]);
       cylinder(root, 0.025, 0.025, 1.45, "brass", [0, 0.86, 0]);
@@ -588,7 +609,11 @@ export function buildCabinet(scene, projects) {
     for (const y of [-1.35, 0, 1.35])
       box(panel, 3.3, 0.06, 0.09, "brass", [0, y, 0]);
     box(panel, 0.06, 5.5, 0.09, "brass", [0, 0, 0]);
-    cylinder(panel, 0.035, 0.035, 0.35, "brass", [-sign * 1.4, -0.1, 0.1]);
+    const knob = new T.Mesh(new T.SphereGeometry(0.13, 20, 16), palette.brass);
+    knob.position.set(-sign * 1.4, -0.1, 0.19);
+    knob.name = "cabinet-door-knob";
+    knob.userData.cabinetKnob = true;
+    panel.add(knob);
     doors.push({ hinge, sign });
   }
   const exhibits = new Map();

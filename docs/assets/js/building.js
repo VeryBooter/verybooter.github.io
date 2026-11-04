@@ -131,13 +131,13 @@ export function buildBuilding(
   building.add(portrait);
   box(portrait, 3.2, 4.1, 0.12, "green");
   ornateFrame(portrait, 3.5, 4.4);
-  const bust = new T.Group();
-  bust.position.set(0, -0.45, 0.3);
-  portrait.add(bust);
-  sphere(bust, 0.65, "cream", [0, 0.7, 0], [0.78, 1.15, 0.5]);
-  cylinder(bust, 0.26, 0.35, 0.65, "cream", [0, -0.15, 0]);
-  sphere(bust, 0.9, "cream", [0, -0.65, 0], [1.1, 0.55, 0.5]);
-  box(bust, 1.8, 0.18, 0.6, "stone", [0, -1.12, 0]);
+  const portraitImage = new T.Mesh(
+    new T.PlaneGeometry(2.7333, 4.1),
+    new T.MeshBasicMaterial({ color: 0xffffff }),
+  );
+  portraitImage.name = "supplied-oil-portrait";
+  portraitImage.position.z = 0.08;
+  portrait.add(portraitImage);
   const interiorLight = new T.PointLight("#ffe6ba", 120, 35, 2);
   interiorLight.position.set(0, 8, -20);
   building.add(interiorLight);

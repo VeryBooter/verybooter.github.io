@@ -96,6 +96,7 @@ test("all twelve animation paths run through their timeline and reset transforms
   const engine = Object.create(GalleryScene.prototype);
   engine.scene = new T.Scene();
   engine.collection = buildCabinet(engine.scene, projects);
+  engine.setAttendant("roman");
   engine.particles = new T.InstancedMesh(
     new T.BoxGeometry(),
     new T.MeshBasicMaterial(),
@@ -158,10 +159,11 @@ test("camera crosses the open entrance before turning toward the interior shelf"
   }
 });
 
-test("TNT flashes twice in pure white before black debris, and exhaust follows the nozzle", () => {
+test("The attendant interrupts the TNT flash and exhaust follows the rocket nozzle", () => {
   const engine = Object.create(GalleryScene.prototype);
   engine.scene = new T.Scene();
   engine.collection = buildCabinet(engine.scene, projects);
+  engine.setAttendant("roman");
   engine.particles = new T.InstancedMesh(
     new T.BoxGeometry(),
     new T.MeshBasicMaterial(),
@@ -177,17 +179,16 @@ test("TNT flashes twice in pure white before black debris, and exhaust follows t
   engine.onFrame = (value) => {
     frame = value;
   };
-  engine.select("voxelcraft");
-  for (const [p, effect, strength] of [
-    [0.32, "tnt-white", 1],
-    [0.4, null, 0],
-    [0.5, "tnt-white", 1],
-    [0.7, "tnt-black", null],
-  ]) {
-    engine.animate(engine.active.start + p * 1500);
-    assert.equal(frame.effect, effect);
-    if (strength !== null) assert.equal(frame.strength, strength);
-  }
+  engine.select("voxelcraft", true, 3800);
+  engine.animate(engine.active.start + .34 * 3800);
+  assert.equal(frame.effect, "tnt-white");
+  assert.ok(frame.strength > .99);
+  engine.animate(engine.active.start + .5 * 3800);
+  assert.equal(frame.effect, null);
+  assert.equal(engine.collection.exhibits.get("voxelcraft").visible, false);
+  assert.ok(engine.attendant.userData.arms[0].rotation.x < -1);
+  engine.animate(engine.active.start + .8 * 3800);
+  assert.equal(engine.attendant.userData.gift.visible, true);
   engine.select("rocket");
   engine.animate(engine.active.start + 1125);
   assert.ok(engine.smoke.visible);
@@ -202,6 +203,7 @@ test("MIPS blueprint scan precedes wall assembly, chip insertion, and final roof
   const engine = Object.create(GalleryScene.prototype);
   engine.scene = new T.Scene();
   engine.collection = buildCabinet(engine.scene, projects);
+  engine.setAttendant("roman");
   engine.particles = new T.InstancedMesh(
     new T.BoxGeometry(),
     new T.MeshBasicMaterial(),

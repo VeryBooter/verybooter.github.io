@@ -7,8 +7,8 @@ import { buildObject, buildCabinet } from "../docs/assets/js/models.js";
 import { Scene } from "three";
 
 test("every catalogue entry has a distinct, nonempty 3D model and stable route", () => {
-  assert.equal(projects.length, 12);
-  assert.equal(new Set(projects.map((p) => p.id)).size, 12);
+  assert.equal(projects.length, 13);
+  assert.equal(new Set(projects.map((p) => p.id)).size, 13);
   for (const project of projects) {
     assert.equal(projectFromHash(`#project/${project.id}`), project);
     assert.ok(
@@ -28,7 +28,7 @@ test("every catalogue entry has a distinct, nonempty 3D model and stable route",
 });
 test("cabinet maps all twelve objects and has two independently hinged doors", () => {
   const cabinet = buildCabinet(new Scene(), projects);
-  assert.equal(cabinet.exhibits.size, 12);
+  assert.equal(cabinet.exhibits.size, 13);
   assert.equal(cabinet.doors.length, 2);
   for (const [id, model] of cabinet.exhibits) {
     assert.ok(model.userData.basePosition);
@@ -76,6 +76,9 @@ test("blocked and malformed storage use safe preferences", () => {
   assert.deepEqual(readPreferences(blocked, true), {
     theme: "light",
     weather: "clear",
+    clouds: false,
+    rain: false,
+    thunder: false,
     motion: false,
   });
   assert.doesNotThrow(() => safeWrite(blocked, "key", "value"));
@@ -88,6 +91,22 @@ test("blocked and malformed storage use safe preferences", () => {
   assert.deepEqual(readPreferences({ getItem: (key) => values[key] }), {
     theme: "dark",
     weather: "storm",
+    clouds: true,
+    rain: true,
+    thunder: false,
     motion: false,
   });
+});
+
+test("rain, clouds, and thunder preferences persist independently", () => {
+  const values = {
+    "gallery.rain": "on",
+    "gallery.clouds": "off",
+    "gallery.thunder": "on",
+    "gallery.weather": "storm",
+  };
+  const prefs = readPreferences({ getItem: (key) => values[key] ?? null });
+  assert.equal(prefs.rain, true);
+  assert.equal(prefs.clouds, false);
+  assert.equal(prefs.thunder, true);
 });

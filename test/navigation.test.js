@@ -69,7 +69,7 @@ async function fixture(hash = "", { blocked = false, reduced = true } = {}) {
 test("all twelve exhibits remain usable without WebGL and restore focus", async () => {
   const { dom, w, $ } = await fixture();
   assert.equal(w.galleryDiagnostics().webgl, false);
-  assert.equal(w.document.querySelectorAll("[data-project]").length, 12);
+  assert.equal(w.document.querySelectorAll("[data-project]").length, projects.length);
   assert.equal($("#doors").hidden, true);
   for (const project of projects) {
     const button = $(`[data-project="${project.id}"]`);
@@ -114,7 +114,7 @@ test("deep links bypass entrance and restore a gallery URL on close", async () =
   assert.equal($("#entrance").hidden, true);
   assert.equal($("#detail-title").textContent, "SOAR / Rocket");
   assert.equal($("#project-dialog").open, true);
-  $("#back-gallery").click();
+  $("#close-detail").click();
   assert.equal(w.location.hash, "#gallery");
   assert.equal($("#project-dialog").open, false);
   dom.window.close();
