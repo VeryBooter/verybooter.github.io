@@ -1793,3 +1793,292 @@ body[data-location="interior"] .introduction {
     margin-top: 10px;
   }
 }
+/* KL is drawn as continuous ink; there is no literal hello stage. */
+#entrance {
+  background:
+    radial-gradient(ellipse at 20% 25%, #9dbea9 0%, transparent 55%),
+    radial-gradient(ellipse at 85% 70%, #c9b4a1 0%, transparent 55%), #809a9b;
+}
+.entrance-center .kl-monogram {
+  width: min(70vw, 440px);
+  height: auto;
+  top: 45%;
+  opacity: 0;
+  animation: kl-presence 3.7s linear both;
+  filter: drop-shadow(0 2px 2px #39544b44);
+}
+.entrance-center .kl-monogram path {
+  stroke: url(#kl-ink);
+  stroke-width: 7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: kl-ink 0.48s cubic-bezier(0.35, 0.05, 0.3, 1) both;
+}
+.entrance-center .kl-monogram .kl-arm {
+  animation-delay: 0.35s;
+  animation-duration: 0.5s;
+}
+.entrance-center .kl-monogram .kl-letter-l {
+  animation-delay: 0.72s;
+  animation-duration: 0.6s;
+}
+@keyframes kl-ink {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+@keyframes kl-presence {
+  0%,
+  34% {
+    opacity: 1;
+  }
+  40%,
+  100% {
+    opacity: 0;
+  }
+}
+.entrance-center .theta-mark {
+  width: min(56vw, 300px);
+  position: absolute;
+  top: 45%;
+  left: 50%;
+  margin: 0;
+  transform: translate(-50%, -50%);
+  stroke: #fffaf0;
+  stroke-width: 1.15;
+}
+.entrance-center .theta-mark .logo-centre {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  transform: none;
+  animation: logo-write 0.4s ease 1.45s both;
+}
+.entrance-center .theta-mark .logo-diameter {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: logo-write 0.25s ease 1.9s both;
+}
+.entrance-center .theta-mark .logo-top {
+  stroke-dasharray: none;
+  stroke-dashoffset: 0;
+  transform-origin: 32px 32px;
+  animation: lid-descend 0.55s cubic-bezier(0.2, 0.6, 0.3, 1) 2.15s both;
+}
+.entrance-center .theta-mark .logo-bottom {
+  stroke-dasharray: none;
+  stroke-dashoffset: 0;
+  transform-origin: 32px 32px;
+  animation: base-rise 0.55s cubic-bezier(0.2, 0.6, 0.3, 1) 2.15s both;
+}
+@keyframes logo-write {
+  from {
+    opacity: 1;
+    stroke-dashoffset: 1;
+  }
+  to {
+    opacity: 1;
+    stroke-dashoffset: 0;
+  }
+}
+@keyframes lid-descend {
+  from {
+    opacity: 0;
+    transform: translateY(-16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes base-rise {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.entrance-center > span:not(.hello-script),
+.entrance-center > p {
+  position: relative;
+  top: 190px;
+  color: #fffaf0;
+}
+#skip-entrance {
+  color: #fffaf0;
+}
+/* Taichi halves span the rectangular beam; their eyes are the navigation labels. */
+.roof-controls {
+  justify-content: space-between;
+  padding: 0 30px;
+  height: 50px;
+  gap: 20px;
+}
+.roof-controls nav {
+  margin-left: auto;
+  gap: 25px;
+  height: 100%;
+}
+.roof-controls .nav-pair {
+  position: relative;
+  width: 300px;
+  height: 100%;
+  padding: 0 15px;
+  gap: 0;
+  justify-content: space-around;
+  border: 0;
+  overflow: visible;
+}
+.taichi-band {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.taichi-white {
+  fill: #f8f2e4;
+}
+.taichi-black {
+  fill: #293b32;
+}
+.taichi-seam {
+  fill: none;
+  stroke: #ac9874;
+  stroke-width: 1;
+}
+.roof-controls .nav-pair a {
+  position: relative;
+  z-index: 1;
+  padding: 10px 12px;
+  font-size: 18px;
+}
+.roof-controls .nav-pair a:last-child,
+.roof-controls .nav-pair a:last-child .nav-count {
+  color: #fff7e6;
+}
+@media (max-width: 1000px) {
+  .roof-controls {
+    height: 44px;
+    padding: 0 8px;
+    gap: 10px;
+  }
+  .roof-controls nav {
+    gap: 10px;
+  }
+  .roof-controls .nav-pair {
+    width: 205px;
+    padding: 0 5px;
+  }
+  .roof-controls .nav-pair a {
+    font-size: 16px;
+    padding: 8px;
+  }
+}
+/* Small numbered buttons sit on a physical plaque instead of a viewport panel. */
+.collection-index[data-wall-mounted] {
+  position: absolute;
+  margin: 0;
+  width: 260px;
+  max-width: none;
+  height: 200px;
+  padding: 12px;
+  border: 2px solid #9a8056;
+  background: #e5dac2;
+  color: #3d3d30;
+  box-shadow: 3px 4px 0 #a99570;
+  backdrop-filter: none;
+}
+.collection-index[data-wall-mounted] .index-heading,
+.collection-index[data-wall-mounted] .index-note,
+.collection-index .project-name,
+.collection-index .project-arrow {
+  display: none;
+}
+.collection-index #project-index {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+}
+.collection-index .project-item {
+  display: grid;
+  place-items: center;
+  padding: 0 !important;
+  width: 100%;
+  height: 52px;
+  border: 1px solid #ad9873;
+  background: #f5ecda;
+  color: #4d4939;
+}
+.collection-index .project-number {
+  font: 500 22px var(--sans);
+  color: inherit;
+}
+.collection-index .project-item:hover,
+.collection-index .project-item:focus-visible {
+  transform: none;
+  background: #3e5648;
+  color: #fff7e7;
+}
+body:not([data-location="interior"]) .collection-index[data-wall-mounted] {
+  visibility: hidden;
+}
+body[data-state="transition"] .collection-index,
+body:has(#exhibit-actions:not([hidden])) .collection-index {
+  opacity: 0.2;
+}
+body.no-webgl .collection-index {
+  width: min(420px, 100%);
+  margin-top: 50px;
+}
+.collection-index .project-item {
+  grid-template-columns: 1fr;
+}
+@media (max-width: 1000px) {
+  .gallery-heading h2 {
+    font-size: 30px;
+  }
+  .gallery-heading > p:not(.eyebrow) {
+    display: none;
+  }
+  #leave-room {
+    font-size: 11px;
+    margin-top: 7px;
+  }
+}
+.collection-index[data-wall-mounted] {
+  left: 0;
+  top: 0;
+  right: auto;
+  bottom: auto;
+}
+.entrance-center .kl-monogram .kl-arm {
+  animation-delay: 0.28s;
+  animation-duration: 0.45s;
+}
+.entrance-center .kl-monogram .kl-letter-l {
+  animation-delay: 0.62s;
+  animation-duration: 0.5s;
+}
+@media (min-width: 1001px) {
+  .intro-copy {
+    left: 18%;
+    width: min(25vw, 350px);
+  }
+}
+.taichi-white {
+  fill: #fff;
+}
+.taichi-black {
+  fill: #000;
+}
+.roof-controls .nav-pair a:first-of-type {
+  color: #000;
+}
+.roof-controls .nav-pair a:last-child,
+.roof-controls .nav-pair a:last-child .nav-count {
+  color: #fff;
+}

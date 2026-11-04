@@ -71,6 +71,7 @@ for (const project of projects) {
   const button = document.createElement("button");
   button.className = "project-item";
   button.dataset.project = project.id;
+  button.title = `${project.number} · ${project.title}`;
   button.setAttribute(
     "aria-label",
     `Open ${project.title}: ${project.subtitle}`,
@@ -92,6 +93,8 @@ for (const project of projects) {
   button.addEventListener("click", () => openProject(project.id));
   button.addEventListener("focus", () => showLabel(project.id));
   button.addEventListener("blur", () => showLabel(null));
+  button.addEventListener("pointerenter", () => showLabel(project.id));
+  button.addEventListener("pointerleave", () => showLabel(null));
   index.append(button);
 }
 function showLabel(id) {
@@ -355,6 +358,7 @@ function setEntranceInert(inert) {
     $("#roof-controls"),
     $("#enter-room"),
     $("#atmosphere"),
+    $(".collection-index"),
     $("main"),
   ])
     target.inert = inert;
@@ -480,6 +484,20 @@ window.galleryDiagnostics = () => ({
       }
     : null,
   vectorDrawing: scene?.vectorArtworkLoaded || false,
+  wallIndex: scene
+    ? {
+        attached: scene.wallIndex.isCSS3DObject,
+        position: scene.wallIndex.position.toArray(),
+        visible: scene.wallIndex.visible,
+      }
+    : null,
+  sunlight: scene
+    ? {
+        sky: scene.sky.visible,
+        intensity: scene.sun.intensity,
+        shadows: scene.renderer.shadowMap.enabled,
+      }
+    : null,
   nozzleWorld: scene?.nozzleWorld?.toArray() || null,
   smokeOrigin: scene?.smokeOrigin?.toArray() || null,
   effect: $("#transition-effect").dataset.effect,

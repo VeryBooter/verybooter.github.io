@@ -1,3 +1,4 @@
+import { buildDaylight, updateDaylight } from "./daylight.js";
 import { animateHouse } from "./house-sequence.js";
 import * as T from "three";
 import {
@@ -62,7 +63,7 @@ export class GalleryScene {
     this.scene = new T.Scene();
     this.scene.background = new T.Color("#eee9df");
     this.scene.fog = new T.Fog("#eee9df", 26, 65);
-    this.camera = new T.PerspectiveCamera(38, 1, 0.1, 100);
+    this.camera = new T.PerspectiveCamera(38, 1, 0.1, 2000);
     this.raycaster = new T.Raycaster();
     this.room = buildRoom(this.scene);
     this.collection = buildCabinet(this.scene, projects);
@@ -74,22 +75,20 @@ export class GalleryScene {
           this.collection.exhibits.get("drawing").userData.parts.artwork;
         const vectors = new T.Group();
         vectors.name = "vector-face-strokes";
-        vectors.position.set(-0.52, 0.67, 0.012);
-        vectors.scale.set(1.04 / 97, -1.34 / 125, 1);
-        for (const path of data.paths)
-          for (const subpath of path.subPaths) {
-            const geometry = SVGLoader.pointsToStroke(
-              subpath.getPoints(36),
-              path.userData.style,
-            );
-            if (!geometry) continue;
+        const fit = 1.34 / 95.46283;
+        vectors.position.set(-(70.84971 * fit) / 2, 0.67, 0.012);
+        vectors.scale.set(fit, -fit, 1);
+        for (const path of data.paths) {
+          for (const shape of SVGLoader.createShapes(path)) {
+            const geometry = new T.ShapeGeometry(shape, 24);
             const stroke = new T.Mesh(
               geometry,
-              new T.MeshBasicMaterial({ color: "#282923", side: T.DoubleSide }),
+              new T.MeshBasicMaterial({ color: "#000000", side: T.DoubleSide }),
             );
             stroke.userData.projectId = "drawing";
             vectors.add(stroke);
           }
+        }
         artwork.add(vectors);
         this.vectorArtworkLoaded = true;
       },
@@ -106,6 +105,14 @@ export class GalleryScene {
     this.roofControls.position.set(0, 9, -2.48);
     this.roofControls.scale.setScalar(0.02);
     this.scene.add(this.roofControls);
+    this.wallIndex = new CSS3DObject(
+      document.querySelector(".collection-index"),
+    );
+    this.wallIndex.name = "numbered-exhibits-on-interior-wall";
+    this.wallIndex.position.set(8.4, 4.7, -32.65);
+    this.wallIndex.scale.setScalar(0.018);
+    this.wallIndex.element.dataset.wallMounted = "true";
+    this.scene.add(this.wallIndex);
     this.doorControl = new CSS3DObject(document.querySelector("#enter-room"));
     this.doorControl.position.set(0, 2.2, -4.65);
     this.doorControl.scale.setScalar(0.02);
@@ -129,6 +136,7 @@ export class GalleryScene {
     this.sun.shadow.bias = -0.001;
     this.scene.add(this.sun);
     this.fill = new T.DirectionalLight("#c5d7d3", 1);
+    this.sky = buildDaylight(this.scene, this.sun);
     this.fill.position.set(9, 7, -1);
     this.scene.add(this.fill);
     this.clouds = new T.Group();
@@ -191,7 +199,17 @@ export class GalleryScene {
       this.renderer.setPixelRatio(
         Math.min(devicePixelRatio, this.mobile ? 1.35 : 1.75),
       );
-      this.renderer.shadowMap.enabled = !this.mobile;
+      this.renderer.shadowMap.enabled = true;
+      this.sun.shadow.mapSize.set(
+        this.mobile ? 1024 : 2048,
+        this.mobile ? 1024 : 2048,
+      );
+      this.wallIndex.position.set(
+        this.mobile ? 0.3 : 8.4,
+        this.mobile ? 7.8 : 4.7,
+        -32.65,
+      );
+      this.wallIndex.scale.setScalar(this.mobile ? 0.015 : 0.018);
       this.renderer.setSize(innerWidth, innerHeight, false);
       this.uiRenderer.setSize(innerWidth, innerHeight);
       this.room.children
@@ -277,8 +295,7 @@ export class GalleryScene {
     this.ambient.intensity = dark ? 0.85 : weather === "clear" ? 2.3 : 1.65;
     this.sun.intensity = dark ? 0.55 : weather === "clear" ? 3.2 : 1.6;
     this.fill.intensity = dark ? 0.5 : 1;
-    this.clouds.visible = weather !== "clear";
-    this.rain.visible = weather === "storm";
+    updateDaylight(this);
   }
   setProgress(value) {
     this.progress = T.MathUtils.clamp(value, 0, 1);
@@ -674,6 +691,8 @@ export class GalleryScene {
         (hinge.rotation.y = -sign * this.entranceAngle * 1.65),
     );
     this.roofControls.visible = this.entryProgress < 0.55;
+    this.wallIndex.visible = this.entryProgress > 0.99;
+    updateDaylight(this);
     this.doorControl.visible = this.entryProgress < 0.2;
     const pose = cameraPose(
       this.entryProgress,

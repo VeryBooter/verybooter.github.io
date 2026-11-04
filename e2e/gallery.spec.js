@@ -52,6 +52,8 @@ for (const [name, width, height] of [
     const diagnostics = await page.evaluate(() => window.galleryDiagnostics());
     expect(diagnostics.webgl, JSON.stringify(diagnostics)).toBe(true);
     expect(diagnostics.objects).toBe(projects.length);
+    expect(diagnostics.sunlight.sky && diagnostics.sunlight.shadows).toBe(true);
+    expect(diagnostics.sunlight.intensity).toBeGreaterThan(3);
     expect(diagnostics.architecture).toEqual({
       columns: 2,
       pediment: true,
@@ -62,6 +64,10 @@ for (const [name, width, height] of [
       await page.evaluate(() => document.documentElement.scrollWidth),
     ).toBeLessThanOrEqual(width);
     await enterRoom(page);
+    const wall = await page.evaluate(() => galleryDiagnostics().wallIndex);
+    expect(wall.attached && wall.visible).toBe(true);
+    expect(wall.position[2]).toBeLessThan(-32);
+    await expect(page.locator(".project-number")).toHaveCount(12);
     await capture(page, `${name}-cabinet-closed`);
     await page.locator("#doors").click();
     await expect(page.locator("#doors")).toHaveAttribute(
@@ -147,7 +153,7 @@ test("all exhibits open, close, and restore keyboard focus in a real browser", a
   }
 });
 
-test("replayed entrance follows the hello, theta, and parting-cloud sequence", async ({
+test("replayed entrance writes KL then assembles circle, diameter, and opposing lids", async ({
   page,
 }) => {
   const clockStart = Date.now() - 60000;
@@ -156,10 +162,13 @@ test("replayed entrance follows the hello, theta, and parting-cloud sequence", a
   await page.clock.pauseAt(clockStart + 120000);
   // Sample each authored CSS-animation stage without depending on screenshot/GPU timing.
   for (const [name, time] of [
-    ["hello", 450],
-    ["kl", 1100],
-    ["theta", 2200],
-    ["clouds", 2950],
+    ["kl", 1000],
+    ["kl-complete", 1300],
+    ["circle", 1850],
+    ["diameter", 2150],
+    ["lids", 2450],
+    ["theta", 2850],
+    ["clouds", 3300],
   ]) {
     await page.locator(".settings-toggle").click();
     await page.locator("#replay").click();
@@ -170,6 +179,30 @@ test("replayed entrance follows the hello, theta, and parting-cloud sequence", a
         animation.currentTime = time;
       }
     }, time);
+    await expect(page.locator(".hello-script")).toHaveCount(0);
+    if (name === "circle") {
+      await expect(page.locator(".logo-centre")).toHaveCSS(
+        "stroke-dashoffset",
+        "0px",
+      );
+      await expect(page.locator(".logo-diameter")).toHaveCSS(
+        "stroke-dashoffset",
+        "1px",
+      );
+      await expect(page.locator(".logo-top")).toHaveCSS("opacity", "0");
+    }
+    if (name === "lids") {
+      const directions = await page.evaluate(() => ({
+        top: new DOMMatrix(
+          getComputedStyle(document.querySelector(".logo-top")).transform,
+        ).m42,
+        bottom: new DOMMatrix(
+          getComputedStyle(document.querySelector(".logo-bottom")).transform,
+        ).m42,
+      }));
+      expect(directions.top).toBeLessThan(0);
+      expect(directions.bottom).toBeGreaterThan(0);
+    }
     await capture(page, `entrance-${name}`);
     await page.locator("#skip-entrance").click();
   }
@@ -345,4 +378,27 @@ test("MIPS home visibly scans, assembles, installs the shelf chip, and places ro
   await capture(page, "steaming-mug");
   await page.locator("#cancel-transition").click();
   await expect(page.locator("#transition")).not.toBeVisible();
+});
+
+test("original PDF face is shown as vectors and wall numbers have accessible project names", async ({
+  page,
+}) => {
+  test.setTimeout(120000);
+  await ready(page);
+  await enterRoom(page);
+  await expect(page.locator('[data-project="drawing"]')).toHaveAttribute(
+    "aria-label",
+    /Face Drawing/,
+  );
+  await page.locator('[data-project="drawing"]').click();
+  await expect(page.locator("#exhibit-actions")).toBeVisible({
+    timeout: 12000,
+  });
+  await capture(page, "original-pdf-face-vectors");
+  await page.locator("#end-exhibit").click();
+  await page.locator('[data-project="sailbot"]').focus();
+  await expect(page.locator("#object-label")).toContainText("SailBot");
+  const rect = await page.locator(".collection-index").boundingBox();
+  expect(rect.width).toBeLessThan(350);
+  expect(rect.height).toBeLessThan(250);
 });

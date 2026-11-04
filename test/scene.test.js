@@ -267,3 +267,19 @@ test("mug replaces cooking pot and steam rises while remaining finite", () => {
     ),
   );
 });
+
+test("face artwork preserves detailed PDF vector curves without embedded pixels", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const svg = await readFile(
+    new URL("../docs/assets/images/face-drawing.svg", import.meta.url),
+    "utf8",
+  );
+  assert.ok(svg.includes("PDF segments: 1210"));
+  assert.equal((svg.match(/[CL](?=[0-9-])/g) || []).length, 1210);
+  assert.ok(!/<image|base64|data:image/.test(svg));
+  assert.ok(
+    svg.includes(
+      "edb53f26b2afaf484d98c4e36ebd18dfd4917d47bb95e4834c8916b8b1a826e0",
+    ),
+  );
+});
