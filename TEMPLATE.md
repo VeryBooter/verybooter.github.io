@@ -78,7 +78,11 @@ The deployable website is generated into `dist/`. Production preview usually run
 
 The Vite base is `/`, appropriate for `https://verybooter.github.io/`. Publish the **contents of `dist/`** with a build-based GitHub Pages workflow. Do not publish unbuilt `docs/` using a branch-folder configuration: its package imports require Vite.
 
-No deployment workflow or repository setting is changed automatically. For a project-subdirectory host, update `base` in `vite.config.js`.
+The deployment workflow is `.github/workflows/deploy.yml`. It installs dependencies, checks JavaScript, builds the gallery, and publishes only `dist/` whenever changes are pushed to `main`. It can also be started manually from the Actions tab.
+
+In the repository's **Settings → Pages → Build and deployment**, set **Source** to **GitHub Actions**. This is a one-time repository setting; the workflow file alone does not switch a branch-based Jekyll site to Actions. After pushing, check **Actions → Deploy gallery to GitHub Pages** for a successful deployment, then open `https://verybooter.github.io/`.
+
+For a project-subdirectory host, update `base` in `vite.config.js`.
 
 ## Verification and diagnostics
 
