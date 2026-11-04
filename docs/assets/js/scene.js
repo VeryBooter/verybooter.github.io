@@ -1,3 +1,4 @@
+import { animateHouse } from "./house-sequence.js";
 import * as T from "three";
 import {
   CSS3DRenderer,
@@ -198,7 +199,7 @@ export class GalleryScene {
         .forEach((trim) => {
           trim.position.y = trim.userData.baseY + (this.mobile ? 0.5 : 0);
         });
-      this.roofControls.element.style.width = this.mobile ? "420px" : "1240px";
+      this.roofControls.element.style.width = this.mobile ? "560px" : "1240px";
       this.roofControls.scale.setScalar(this.mobile ? 0.045 : 0.02);
       this.doorControl.scale.setScalar(this.mobile ? 0.03 : 0.02);
       this.room.userData.roofBar.scale.y = this.mobile ? 2 : 1;
@@ -320,10 +321,10 @@ export class GalleryScene {
     );
     return hits[0]?.object.userData.projectId || null;
   }
-  select(id, motion = true) {
+  select(id, motion = true, duration = 1500) {
     this.reset();
     this.open = true;
-    this.active = { id, start: performance.now(), motion };
+    this.active = { id, start: performance.now(), motion, duration };
     this.collection.cabinet.visible = true;
     this.onHover?.(null);
   }
@@ -354,6 +355,10 @@ export class GalleryScene {
         });
       if (parts.house) {
         parts.house.visible = false;
+        parts.roof.visible = false;
+        parts.blueprint.scale.setScalar(1);
+        parts.scan.visible = false;
+        parts.scanLight.intensity = 0;
         parts.blueprint.visible = true;
         parts.chip.visible = false;
       }
@@ -421,7 +426,13 @@ export class GalleryScene {
     const { id, start, motion } = this.active,
       item = this.collection.exhibits.get(id);
     if (!item) return;
-    const p = motion ? T.MathUtils.clamp((now - start) / 1500, 0, 1) : 1,
+    const p = motion
+        ? T.MathUtils.clamp(
+            (now - start) / (this.active.duration || 1500),
+            0,
+            1,
+          )
+        : 1,
       a = ease(Math.min(1, p * 1.7));
     const parts = item.userData.parts,
       base = item.userData.basePosition,
@@ -474,24 +485,11 @@ export class GalleryScene {
         });
         break;
       }
-      case "house": {
-        const chip = this.active.phase === "chip";
-        const carry = T.MathUtils.smoothstep(p, 0.2, 0.8),
-          destination = target.clone().add(new T.Vector3(0, -0.6, 0));
-        const hand = base.clone().lerp(destination, carry);
-        positionRobot(this.collection, hand);
-        item.position.copy(hand);
-        item.scale.multiplyScalar(1 + carry * 1.1);
-        parts.blueprint.visible = !chip && p < 0.65;
-        parts.house.visible = !chip && p >= 0.55;
-        parts.chip.visible = chip;
-        parts.scan.position.y = 0.5 - p;
-        if (chip) {
-          item.rotation.x = 0.65;
-          item.rotation.y = 0.2;
-        } else if (this.camera) item.lookAt(this.camera.position);
+      case "house":
+        this.positionHouseHand = (target) =>
+          positionRobot(this.collection, target);
+        animateHouse(this, item, p, this.active.phase);
         break;
-      }
       case "drone":
         present(3);
         parts.propellers.forEach((prop) => {
@@ -501,14 +499,7 @@ export class GalleryScene {
         break;
       case "cooking":
         present(3);
-        positionRobot(
-          this.collection,
-          item.position.clone().add(new T.Vector3(0.5, 0.35, 0)),
-        );
-        item.rotation.x += Math.sin(p * Math.PI * 2) * 0.1;
-        parts.ingredient.position.y = 0.65 + Math.sin(p * Math.PI) * 0.5;
-        this.collection.grip.rotation.z = p > 0.65 ? -0.7 : 0;
-        this.collection.thumbsUp.visible = p > 0.65;
+        this.animateSteam(item, now, true);
         break;
       case "voxelcraft": {
         item.scale.multiplyScalar(
@@ -612,6 +603,15 @@ export class GalleryScene {
     }
     this.particles.instanceMatrix.needsUpdate = true;
   }
+  animateSteam(item, now, motion) {
+    item.userData.parts.steam.children.forEach((strand, i) => {
+      const t = motion ? (now / 1800 + i * 0.19) % 1 : 0.35 + i * 0.07;
+      strand.position.y = 0.72 + t * 0.35;
+      strand.position.x = (i - 2) * 0.09 + Math.sin(t * 5 + i) * 0.07;
+      strand.material.opacity = Math.sin(t * Math.PI) * 0.55;
+      strand.scale.setScalar(0.65 + t * 0.5);
+    });
+  }
   animateSmoke(rocket, p) {
     this.smoke.visible = p > 0.6;
     if (!this.smoke.visible) return;
@@ -699,6 +699,11 @@ export class GalleryScene {
       this.clouds.position.x = Math.sin(now * 0.000035) * 2;
       this.rain.position.y = -(now * 0.003) % 3;
     }
+    this.animateSteam(
+      this.collection.exhibits.get("cooking"),
+      now,
+      this.preferences.motion,
+    );
     this.animate(now);
     this.renderer.render(this.scene, this.camera);
     this.uiRenderer.render(this.scene, this.camera);

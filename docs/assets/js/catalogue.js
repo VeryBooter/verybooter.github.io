@@ -20,7 +20,7 @@ export const projects = [
   ],
   [
     "house",
-    "Home Design",
+    "MIPS home design",
     "Spaces for living",
     "Design",
     "Making room for an idea.",
@@ -38,11 +38,11 @@ export const projects = [
   ],
   [
     "cooking",
-    "Cooking",
-    "Experiments at the stove",
+    "A Quiet Mug",
+    "A little warmth",
     "Life",
-    "Some experiments are best shared over dinner.",
-    "Share a favorite recipe, a cooking experiment, or the story behind something you like to make.",
+    "A warm pause between ideas.",
+    "Share a favorite drink or a small daily ritual. Replace this placeholder with your own story.",
     "toss",
   ],
   [
@@ -120,6 +120,7 @@ export const projects = [
     summary,
     description,
     animation,
+    duration: id === "house" ? 9000 : id === "cooking" ? 2600 : 1500,
     number: String(index + 1).padStart(2, "0"),
     placeholder: true,
     links: [],

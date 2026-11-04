@@ -48,9 +48,9 @@ Fonts are bundled locally through Fontsource. The public site does not request a
 
 ## Controls
 
-The atmosphere control on the rectangular roof beam exposes Day/Night lighting, Clear/Cloudy/Rainstorm weather, Motion, and Replay entrance. The entrance lasts 3.7 seconds and plays once per session. Skip is immediately available. Reduced motion bypasses it by default.
+Clear, Cloudy, and Rainstorm SVG icons select weather directly on the rectangular roof beam. A moon icon opens lighting and motion settings, and a replay icon restarts the entrance. The entrance starts after scene initialization, lasts 3.7 seconds, and plays on each ordinary page load. Skip is immediately available. Reduced motion bypasses it by default.
 
-Open the cabinet to select its objects directly, or use the twelve-item collection index. Transitions last 1.5 seconds, with Skip and Cancel controls. Photography and the lamp are effects only, and the original face drawing is displayed directly without a story dialog. The smart-house exhibit supports house/chip inspection; the game controller opens its story after a button press. Escape cancels a transition or closes a project. Closing restores focus to the corresponding index item. A URL such as `#project/sailbot` opens its project directly. Browser Back restores the previous view.
+Open the cabinet to select its objects directly, or use the twelve-item collection index. Most transitions last 1.5 seconds, with Skip and Cancel controls. MIPS home design uses a nine-second sequence: the robot picks up a blueprint, laser-scans it, the blueprint dissolves, house components assemble, a chip emerges from the shelf and is installed by the robot, and the roof arrives last. The mug presentation lasts 2.6 seconds and includes rising steam. Photography and the lamp are effects only, and the original face drawing is displayed directly without a story dialog. The smart-house exhibit supports house/chip inspection; the game controller opens its story after a button press. Escape cancels a transition or closes a project. Closing restores focus to the corresponding index item. A URL such as `#project/sailbot` opens its project directly. Browser Back restores the previous view.
 
 Storage denial does not prevent use. If WebGL is unavailable or its context is lost, the HTML index continues to work. JavaScript is required for project content; the introduction and GitHub contact remain available without it.
 
@@ -92,6 +92,8 @@ In a browser console, `galleryDiagnostics()` reports navigation state, WebGL ava
 
 The courtyard roof has a triangular pediment above a rectangular beam. The mark appears on the triangle; About, Gallery, Contact, and atmosphere controls are CSS3D elements attached to the rectangular beam. The doorway opens before the camera crosses the threshold and turns toward the cabinet inside. Use the return link to leave the room.
 
-The session entrance includes handwritten hello, the KL monogram, the assembled mark, and parting clouds. Replay is available through the roof atmosphere control. Reduced motion bypasses the entrance and object transitions.
+The entrance includes handwritten hello, the KL monogram, the assembled mark, and parting clouds. Replay is available directly through the roof replay icon and through the lighting/motion panel. Reduced motion bypasses the entrance and object transitions.
 
 `face-drawing.svg` contains editable vector strokes; SVGLoader converts them into scene geometry. `hackathon` remains the stable project URL identifier for Merry-Men. Rocket smoke starts at the transformed nozzle position. TNT uses two brief pure-white flashes followed by black block debris; Motion Off bypasses the effect. Popup close controls use red macOS-style circles with accessible labels.
+
+`house-sequence.js` owns the MIPS construction timeline. House components and roof are separately modeled in `models.js`; `catalogue.js` sets the project transition duration. The `cooking` fragment remains stable but now presents a ceramic mug, drink surface, and animated steam.

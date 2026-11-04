@@ -11,11 +11,11 @@ export class GalleryController {
     this.state = state;
     this.onChange(state, this.activeId);
   }
-  select(id, motion = true) {
+  select(id, motion = true, duration = this.duration) {
     clearTimeout(this.timer);
     this.activeId = id;
     this.change(motion ? "transition" : "detail");
-    if (motion) this.timer = setTimeout(() => this.finish(), this.duration);
+    if (motion) this.timer = setTimeout(() => this.finish(), duration);
   }
   finish() {
     clearTimeout(this.timer);

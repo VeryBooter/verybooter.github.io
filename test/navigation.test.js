@@ -123,8 +123,7 @@ test("theme, weather, and motion controls work when storage is denied", async ()
   const { dom, w, $ } = await fixture("", { blocked: true });
   $('button[data-theme="dark"]').click();
   assert.equal(w.document.body.dataset.theme, "dark");
-  $("#weather").value = "storm";
-  $("#weather").dispatchEvent(new w.Event("change"));
+  $('[data-weather="storm"]').click();
   assert.equal(w.galleryDiagnostics().preferences.weather, "storm");
   assert.equal($("#motion").getAttribute("aria-pressed"), "false");
   $("#motion").click();

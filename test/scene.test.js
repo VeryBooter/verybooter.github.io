@@ -197,3 +197,73 @@ test("TNT flashes twice in pure white before black debris, and exhaust follows t
     .userData.parts.nozzle.getWorldPosition(new T.Vector3());
   assert.ok(engine.smokeOrigin.distanceTo(nozzle) < 1e-8);
 });
+
+test("MIPS blueprint scan precedes wall assembly, chip insertion, and final roof", () => {
+  const engine = Object.create(GalleryScene.prototype);
+  engine.scene = new T.Scene();
+  engine.collection = buildCabinet(engine.scene, projects);
+  engine.particles = new T.InstancedMesh(
+    new T.BoxGeometry(),
+    new T.MeshBasicMaterial(),
+    40,
+  );
+  engine.smoke = new T.InstancedMesh(
+    new T.SphereGeometry(),
+    new T.MeshBasicMaterial(),
+    24,
+  );
+  engine.dummy = new T.Object3D();
+  engine.select("house", true, 9000);
+  const item = engine.collection.exhibits.get("house"),
+    parts = item.userData.parts;
+  const at = (p) => engine.animate(engine.active.start + p * 9000);
+  at(0.25);
+  assert.ok(parts.blueprint.visible && parts.scan.visible);
+  assert.ok(!parts.house.visible && !parts.roof.visible);
+  const laserStart = parts.scan.position.y;
+  at(0.34);
+  assert.ok(parts.scan.position.y < laserStart);
+  at(0.45);
+  assert.ok(!parts.blueprint.visible && parts.house.visible);
+  assert.ok(
+    parts.components.some((c) => c.visible) &&
+      parts.components.some((c) => !c.visible),
+  );
+  at(0.65);
+  assert.ok(parts.chip.visible && !parts.roof.visible);
+  const chipStart = parts.chip.getWorldPosition(new T.Vector3());
+  at(0.8);
+  const chipInHand = parts.chip.getWorldPosition(new T.Vector3());
+  const grip = engine.collection.grip.getWorldPosition(new T.Vector3());
+  assert.ok(chipInHand.distanceTo(chipStart) > 0.2);
+  assert.ok(grip.distanceTo(chipInHand) < 1e-7);
+  assert.ok(!parts.roof.visible);
+  at(0.86);
+  assert.ok(parts.chip.position.distanceTo(new T.Vector3(0, 0.24, 0)) < 1e-7);
+  at(1);
+  assert.ok(parts.roof.visible && parts.components.every((c) => c.visible));
+  assert.equal(engine.houseStage, "complete");
+  engine.reset();
+  assert.ok(
+    parts.blueprint.visible && !parts.chip.visible && !parts.scan.visible,
+  );
+});
+
+test("mug replaces cooking pot and steam rises while remaining finite", () => {
+  const world = new T.Scene(),
+    collection = buildCabinet(world, projects);
+  const item = collection.exhibits.get("cooking");
+  assert.ok(item.userData.parts.mug && item.userData.parts.water);
+  assert.equal(item.userData.parts.ingredient, undefined);
+  const engine = Object.create(GalleryScene.prototype);
+  engine.animateSteam(item, 100, true);
+  const first = item.userData.parts.steam.children[0].position.y;
+  engine.animateSteam(item, 600, true);
+  assert.ok(item.userData.parts.steam.children[0].position.y > first);
+  engine.animateSteam(item, 900, false);
+  assert.ok(
+    item.userData.parts.steam.children.every((c) =>
+      c.position.toArray().every(Number.isFinite),
+    ),
+  );
+});

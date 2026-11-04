@@ -145,20 +145,35 @@ export function buildObject(id) {
       break;
     case "house": {
       parts.house = group(root);
-      box(parts.house, 0.9, 0.65, 0.7, "cream", [0, 0.38, 0]);
-      cylinder(
-        parts.house,
-        0,
-        0.72,
-        0.45,
+      parts.components = [];
+      const component = (x, y, z, mat, position) => {
+        const piece = box(parts.house, x, y, z, mat, position);
+        piece.userData.home = piece.position.clone();
+        parts.components.push(piece);
+        return piece;
+      };
+      component(1.15, 0.1, 0.95, "stone", [0, 0.08, 0]);
+      component(1.05, 0.08, 0.85, "green", [0, 0.2, 0]);
+      component(0.09, 0.75, 0.85, "cream", [-0.5, 0.58, 0]);
+      component(0.09, 0.75, 0.85, "cream", [0.5, 0.58, 0]);
+      component(1.05, 0.75, 0.09, "cream", [0, 0.58, -0.4]);
+      for (const x of [-0.38, 0.38]) {
+        component(0.28, 0.75, 0.09, "cream", [x, 0.58, 0.4]);
+        component(0.18, 0.22, 0.025, "blue", [x, 0.64, 0.46]);
+      }
+      component(0.25, 0.48, 0.08, "wood", [0, 0.45, 0.42]);
+      parts.roof = group(parts.house, [0, 0.955, 0]);
+      const roofShape = new T.Shape();
+      roofShape.moveTo(-0.65, 0);
+      roofShape.lineTo(0, 0.48);
+      roofShape.lineTo(0.65, 0);
+      roofShape.closePath();
+      mesh(
+        parts.roof,
+        new T.ExtrudeGeometry(roofShape, { depth: 1.05, bevelEnabled: false }),
         "red",
-        [0, 0.93, 0],
-        [0, Math.PI / 4, 0],
-        4,
+        [0, 0, -0.525],
       );
-      box(parts.house, 0.19, 0.34, 0.02, "wood", [0, 0.25, 0.36]);
-      for (const x of [-0.28, 0.28])
-        box(parts.house, 0.16, 0.17, 0.025, "blue", [x, 0.5, 0.36]);
       parts.blueprint = group(root, [0, 0.6, 0.05]);
       box(parts.blueprint, 0.85, 1.05, 0.025, "blue");
       for (const y of [-0.55, 0.55])
@@ -177,14 +192,72 @@ export function buildObject(id) {
           -0.3 + i * 0.2,
           0.025,
         ]);
+      for (const [x, y, w, h] of [
+        [-0.17, 0.12, 0.32, 0.4],
+        [0.16, 0.12, 0.25, 0.4],
+        [0, -0.24, 0.6, 0.22],
+      ]) {
+        for (const side of [-1, 1]) {
+          box(parts.blueprint, w, 0.009, 0.008, "cream", [
+            x,
+            y + (side * h) / 2,
+            0.026,
+          ]);
+          box(parts.blueprint, 0.009, h, 0.008, "cream", [
+            x + (side * w) / 2,
+            y,
+            0.026,
+          ]);
+        }
+      }
+      const laserMaterial = new T.MeshBasicMaterial({
+        color: "#68ffdb",
+        transparent: true,
+        opacity: 0.9,
+      });
       parts.scan = box(
         parts.blueprint,
         0.8,
         0.035,
         0.04,
-        "brass",
+        laserMaterial,
         [0, 0.5, 0.04],
       );
+      const scanHalo = box(
+        parts.scan,
+        0.8,
+        0.19,
+        0.01,
+        new T.MeshBasicMaterial({
+          color: "#68ffdb",
+          transparent: true,
+          opacity: 0.2,
+        }),
+        [0, 0, 0.01],
+      );
+      const fanGeometry = new T.BufferGeometry();
+      fanGeometry.setAttribute(
+        "position",
+        new T.Float32BufferAttribute(
+          [-0.4, 0, 0.03, 0.4, 0, 0.03, 0.65, 0.25, 0.7],
+          3,
+        ),
+      );
+      parts.laserFan = mesh(
+        parts.scan,
+        fanGeometry,
+        new T.MeshBasicMaterial({
+          color: "#68ffdb",
+          transparent: true,
+          opacity: 0.16,
+          side: T.DoubleSide,
+          depthWrite: false,
+        }),
+      );
+      sphere(parts.scan, 0.045, laserMaterial, [0.65, 0.25, 0.7]);
+      parts.scanLight = new T.PointLight("#68ffdb", 0, 3);
+      parts.scan.add(parts.scanLight);
+      parts.scan.visible = false;
       parts.chip = group(root, [0, 0.5, 0]);
       box(parts.chip, 1.1, 0.09, 0.85, "green");
       box(parts.chip, 0.55, 0.16, 0.5, "blue", [0, 0.12, 0]);
@@ -225,20 +298,53 @@ export function buildObject(id) {
           cylinder(root, 0.05, 0.05, 0.1, "black", [x, 0.3, z]);
         }
       break;
-    case "cooking":
-      cylinder(root, 0.43, 0.37, 0.5, "black", [0, 0.35, 0]);
-      cylinder(root, 0.44, 0.44, 0.035, "brass", [0, 0.6, 0]);
-      for (const x of [-0.52, 0.52])
-        box(root, 0.22, 0.08, 0.15, "wood", [x, 0.43, 0]);
-      parts.ingredient = sphere(
+    case "cooking": {
+      // Lathed ceramic walls leave a genuinely open rim around the drink.
+      const profile = [
+        new T.Vector2(0.02, 0.04),
+        new T.Vector2(0.3, 0.04),
+        new T.Vector2(0.34, 0.12),
+        new T.Vector2(0.36, 0.7),
+        new T.Vector2(0.31, 0.7),
+        new T.Vector2(0.29, 0.14),
+        new T.Vector2(0.02, 0.14),
+      ];
+      parts.mug = mesh(root, new T.LatheGeometry(profile, 32), "cream");
+      mesh(
         root,
-        0.16,
+        new T.TorusGeometry(0.23, 0.06, 8, 24, Math.PI * 1.65),
         "cream",
-        [0, 0.65, 0],
-        [1, 0.25, 1],
+        [0.39, 0.4, 0],
+        [0, 0, -Math.PI * 0.825],
       );
-      sphere(parts.ingredient, 0.065, "brass", [0, 0.035, 0], [1, 0.4, 1]);
+      parts.water = cylinder(root, 0.3, 0.3, 0.02, "blue", [0, 0.61, 0]);
+      parts.steam = group(root);
+      for (let i = 0; i < 5; i++) {
+        const points = Array.from(
+          { length: 18 },
+          (_, j) => new T.Vector3(Math.sin(j * 0.5 + i) * 0.045, j * 0.022, 0),
+        );
+        const material = new T.MeshBasicMaterial({
+          color: "#dce5df",
+          transparent: true,
+          opacity: 0.48,
+          depthWrite: false,
+        });
+        const line = new T.Mesh(
+          new T.TubeGeometry(
+            new T.CatmullRomCurve3(points),
+            24,
+            0.009,
+            4,
+            false,
+          ),
+          material,
+        );
+        line.position.set((i - 2) * 0.09, 0.72, (i % 2) * 0.06);
+        parts.steam.add(line);
+      }
       break;
+    }
     case "voxelcraft":
       box(root, 0.7, 0.7, 0.7, "red", [0, 0.4, 0]);
       box(root, 0.71, 0.22, 0.71, "cream", [0, 0.4, 0]);

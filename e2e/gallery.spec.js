@@ -12,6 +12,7 @@ async function ready(page, hash = "") {
   const skip = page.locator("#skip-entrance");
   if (await skip.isVisible())
     await skip.click({ timeout: 1000 }).catch(() => {});
+  await expect(page.locator("#entrance")).not.toBeVisible({ timeout: 10000 });
   await page.evaluate(() => document.fonts.ready);
 }
 
@@ -82,8 +83,8 @@ for (const [name, width, height] of [
       .toBe("courtyard");
     await page.locator(".settings-toggle").click();
     await page.locator('button[data-theme="dark"]').click();
-    await page.locator("#weather").selectOption("storm");
-    await page.locator(".settings-toggle").click();
+    await page.locator("#close-atmosphere").click();
+    await page.locator('[data-weather="storm"]').click();
     await capture(page, `${name}-night`);
     expect(errors).toEqual([]);
   });
@@ -109,14 +110,18 @@ test("all exhibits open, close, and restore keyboard focus in a real browser", a
       continue;
     }
     if (project.presentation === "display") {
-      await expect(page.locator("#exhibit-actions")).toBeVisible();
+      await expect(page.locator("#exhibit-actions")).toBeVisible({
+        timeout: 12000,
+      });
       await expect(page.locator("#project-dialog")).not.toBeVisible();
       await capture(page, "face-drawing-inspection");
       await page.locator("#end-exhibit").click();
       continue;
     }
     if (project.id === "house") {
-      await expect(page.locator("#exhibit-actions")).toBeVisible();
+      await expect(page.locator("#exhibit-actions")).toBeVisible({
+        timeout: 12000,
+      });
       await page.locator("#inspect-chip").click();
       await expect(page.locator("#inspect-chip")).toHaveAttribute(
         "aria-pressed",
@@ -127,7 +132,9 @@ test("all exhibits open, close, and restore keyboard focus in a real browser", a
       await page.locator("#read-story").click();
     }
     if (project.id === "games") {
-      await expect(page.locator("#exhibit-actions")).toBeVisible();
+      await expect(page.locator("#exhibit-actions")).toBeVisible({
+        timeout: 12000,
+      });
       await capture(page, "controller-inspection");
       await page.locator("#game-buttons button").first().click();
     }
@@ -262,4 +269,80 @@ test("roof controls, vector artwork, two white flashes, nozzle exhaust, and red 
     );
   }
   await capture(page, "red-close-detail");
+});
+
+test("entrance plays again on reload and roof weather uses direct SVG icons", async ({
+  page,
+}) => {
+  test.setTimeout(120000);
+  await page.clock.install();
+  await ready(page);
+  await page.clock.pauseAt(new Date(Date.now() + 120000));
+  await page.reload();
+  await page.evaluate(() => document.fonts.ready);
+  await page.clock.runFor(1000);
+  await page.waitForFunction(
+    () => typeof window.galleryDiagnostics === "function",
+  );
+  await expect(page.locator("#entrance")).toBeVisible();
+  await page.locator("#skip-entrance").click();
+  expect(await page.evaluate(() => scrollY)).toBe(0);
+  await expect(page.locator(".roof-weather svg")).toHaveCount(3);
+  await expect(page.locator("#weather")).toHaveCount(0);
+  await page.locator('[data-weather="cloudy"]').click();
+  await expect(page.locator('[data-weather="cloudy"]')).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+  expect(
+    await page.evaluate(() => galleryDiagnostics().preferences.weather),
+  ).toBe("cloudy");
+  await capture(page, "roof-weather-icons");
+  await page.locator("#replay-roof").click();
+  await expect(page.locator("#entrance")).toBeVisible();
+  await page.locator("#skip-entrance").click();
+});
+
+test("MIPS home visibly scans, assembles, installs the shelf chip, and places roof last", async ({
+  page,
+}) => {
+  test.setTimeout(240000);
+  await page.clock.install();
+  await ready(page);
+  await enterRoom(page);
+  await page.clock.pauseAt(new Date(Date.now() + 120000));
+  await page.locator('[data-project="house"]').click();
+  let elapsed = 0;
+  for (const [time, stage, name] of [
+    [1400, "grabbing-blueprint", "mips-grab"],
+    [2400, "laser-scanning", "mips-laser"],
+    [4000, "assembling-walls", "mips-walls"],
+    [6000, "chip-emerging", "mips-chip-shelf"],
+    [7200, "installing-chip", "mips-chip-install"],
+    [8400, "placing-roof", "mips-roof"],
+  ]) {
+    await page.clock.runFor(time - elapsed);
+    elapsed = time;
+    expect(await page.evaluate(() => galleryDiagnostics().houseStage)).toBe(
+      stage,
+    );
+    const parts = await page.evaluate(() => galleryDiagnostics().houseParts);
+    if (time === 2400)
+      expect(parts.laser && parts.blueprint && !parts.house).toBe(true);
+    if (time >= 4000) expect(parts.blueprint).toBe(false);
+    if (time < 8400) expect(parts.roof).toBe(false);
+    await capture(page, name);
+  }
+  await page.clock.runFor(600);
+  await expect(page.locator("#exhibit-actions")).toBeVisible();
+  expect(await page.evaluate(() => galleryDiagnostics().houseStage)).toBe(
+    "complete",
+  );
+  await capture(page, "mips-complete");
+  await page.locator("#end-exhibit").click();
+  await page.locator('[data-project="cooking"]').click();
+  await page.clock.runFor(1100);
+  await capture(page, "steaming-mug");
+  await page.locator("#cancel-transition").click();
+  await expect(page.locator("#transition")).not.toBeVisible();
 });

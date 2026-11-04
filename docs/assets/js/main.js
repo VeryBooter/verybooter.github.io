@@ -31,7 +31,7 @@ const controller = new GalleryController({
     $("#transition").hidden = state !== "transition";
     if (state === "transition") {
       $("#transition-title").textContent = getProject(id).title;
-      scene?.select(id, preferences.motion);
+      scene?.select(id, preferences.motion, getProject(id).duration);
       $("#skip-transition").focus({ preventScroll: true });
     }
     if (state === "detail") {
@@ -192,7 +192,11 @@ function openProject(id, { fromRoute = false, animate = true } = {}) {
     history.pushState({ galleryProject: true }, "", `#project/${id}`);
     routeOwned = true;
   } else routeOwned = false;
-  controller.select(id, animate && preferences.motion && !fallback);
+  controller.select(
+    id,
+    animate && preferences.motion && !fallback,
+    project.duration,
+  );
 }
 function closeProject() {
   controller.back();
@@ -256,7 +260,11 @@ function applyPreferences() {
         String(button.dataset.theme === preferences.theme),
       );
   });
-  $("#weather").value = preferences.weather;
+  for (const button of document.querySelectorAll("[data-weather]"))
+    button.setAttribute(
+      "aria-pressed",
+      String(button.dataset.weather === preferences.weather),
+    );
   $("#motion").textContent = preferences.motion ? "On" : "Off";
   $("#motion").setAttribute("aria-pressed", String(preferences.motion));
   scene?.setPreferences(preferences);
@@ -272,11 +280,12 @@ document.querySelectorAll("button[data-theme]").forEach((button) =>
     applyPreferences();
   }),
 );
-$("#weather").addEventListener("change", (e) => {
-  preferences.weather = e.target.value;
-  safeWrite(local, "gallery.weather", preferences.weather);
-  applyPreferences();
-});
+for (const button of document.querySelectorAll("[data-weather]"))
+  button.addEventListener("click", () => {
+    preferences.weather = button.dataset.weather;
+    safeWrite(local, "gallery.weather", preferences.weather);
+    applyPreferences();
+  });
 $("#motion").addEventListener("click", () => {
   preferences.motion = !preferences.motion;
   safeWrite(local, "gallery.motion", preferences.motion ? "on" : "off");
@@ -363,15 +372,19 @@ function finishEntrance() {
 }
 function playEntrance() {
   if (!preferences.motion) return;
+  window.scrollTo({ top: 0, behavior: "instant" });
   clearTimeout(entranceTimer);
   clearTimeout(entranceHideTimer);
   entrance.hidden = false;
   entrance.classList.remove("leaving");
   setEntranceInert(true);
   controller.change("entrance");
-  const svg = entrance.querySelector("svg");
-  const replacement = svg.cloneNode(true);
-  svg.replaceWith(replacement);
+  // Restart every authored CSS animation, including the clouds and both marks.
+  entrance.style.animation = "none";
+  for (const animation of entrance.getAnimations?.({ subtree: true }) || []) {
+    animation.cancel();
+    animation.play();
+  }
   $("#skip-entrance").focus({ preventScroll: true });
   entranceTimer = setTimeout(() => {
     entrance.classList.add("leaving");
@@ -406,8 +419,7 @@ document.body.dataset.location = "courtyard";
 const initialProject = projectFromHash(location.hash);
 if (initialProject)
   openProject(initialProject.id, { fromRoute: true, animate: false });
-else if (preferences.motion && safeRead(session, "gallery.entered") !== "yes")
-  playEntrance();
+
 try {
   const { GalleryScene } = await import("./scene.js");
   scene = new GalleryScene($("#scene"), projects, {
@@ -435,6 +447,16 @@ try {
   console.warn("Gallery fallback:", error);
   handleFailure();
 }
+// Start only after the renderer/import has finished, so setup cannot consume the opening.
+if (!initialProject && preferences.motion) {
+  await document.fonts?.ready;
+  // Let shader compilation and the first canvas paint finish before starting the clock.
+  await new Promise((resolve) =>
+    window.requestAnimationFrame(() => window.requestAnimationFrame(resolve)),
+  );
+  playEntrance();
+}
+$("#replay-roof").addEventListener("click", () => $("#replay").click());
 document.addEventListener("visibilitychange", () => {
   if (document.hidden) scene?.pause();
   else if (!fallback) scene?.resume();
@@ -461,6 +483,20 @@ window.galleryDiagnostics = () => ({
   nozzleWorld: scene?.nozzleWorld?.toArray() || null,
   smokeOrigin: scene?.smokeOrigin?.toArray() || null,
   effect: $("#transition-effect").dataset.effect,
+  houseStage: scene?.houseStage || null,
+  houseParts: scene
+    ? (() => {
+        const p = scene.collection.exhibits.get("house").userData.parts;
+        return {
+          blueprint: p.blueprint.visible,
+          laser: p.scan.visible,
+          house: p.house.visible,
+          roof: p.roof.visible,
+          chip: p.chip.visible,
+          components: p.components.filter((c) => c.visible).length,
+        };
+      })()
+    : null,
   drawCalls: scene?.renderer.info.render.calls,
   triangles: scene?.renderer.info.render.triangles,
   averageFps: scene?.frameTimes.length
