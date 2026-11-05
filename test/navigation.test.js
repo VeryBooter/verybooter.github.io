@@ -69,7 +69,10 @@ async function fixture(hash = "", { blocked = false, reduced = true } = {}) {
 test("all twelve exhibits remain usable without WebGL and restore focus", async () => {
   const { dom, w, $ } = await fixture();
   assert.equal(w.galleryDiagnostics().webgl, false);
-  assert.equal(w.document.querySelectorAll("[data-project]").length, projects.length);
+  assert.equal(
+    w.document.querySelectorAll("[data-project]").length,
+    projects.length,
+  );
   assert.equal($("#doors").hidden, true);
   for (const project of projects) {
     const button = $(`[data-project="${project.id}"]`);
@@ -83,7 +86,8 @@ test("all twelve exhibits remain usable without WebGL and restore focus", async 
     if (project.presentation === "display") {
       assert.equal($("#exhibit-actions").hidden, false);
       assert.equal($("#project-dialog").open, false);
-      $("#end-exhibit").click();
+      assert.equal($("#end-exhibit").hidden, true);
+      $("#close-inspection").click();
       await new Promise((resolve) => setTimeout(resolve, 10));
       continue;
     }

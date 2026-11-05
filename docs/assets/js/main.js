@@ -1,8 +1,10 @@
+import { mountProjector } from "./projector.js";
 import { projects, getProject, projectFromHash } from "./catalogue.js";
 import { GalleryController } from "./controller.js";
 import { safeRead, safeWrite, readPreferences } from "./preferences.js";
 
 const $ = (selector) => document.querySelector(selector);
+mountProjector();
 let local, session;
 try {
   local = localStorage;
@@ -33,11 +35,13 @@ let attendant = ["roman", "butler", "fox"].includes(
 const controller = new GalleryController({
   onChange(state, id) {
     document.body.dataset.state = state;
-    $("#transition").hidden = state !== "transition";
+    $("#transition").hidden =
+      state !== "transition" || ["cooking", "lamp"].includes(id);
     if (state === "transition") {
       $("#transition-title").textContent = getProject(id).title;
       scene?.select(id, preferences.motion, getProject(id).duration);
-      $("#skip-transition").focus({ preventScroll: true });
+      if (!$("#transition").hidden)
+        $("#skip-transition").focus({ preventScroll: true });
     }
     if (state === "detail") {
       $("#transition").hidden = true;
@@ -127,6 +131,7 @@ function openStory(project) {
 function showPreview(project) {
   $("#exhibit-actions").hidden = false;
   $("#preview-title").textContent = project.title;
+  $("#end-exhibit").hidden = project.id === "drawing";
   $("#inspect-chip").hidden = project.id !== "house";
   $("#inspect-chip").textContent = "Inspect chip";
   $("#inspect-chip").setAttribute("aria-pressed", "false");
@@ -140,7 +145,9 @@ function showPreview(project) {
     }
     $("#game-buttons").append(...buttons);
   }
-  $("#end-exhibit").focus({ preventScroll: true });
+  $(project.id === "drawing" ? "#close-inspection" : "#end-exhibit").focus({
+    preventScroll: true,
+  });
 }
 function pressGameButton(index) {
   if (controller.activeId !== "games" || $("#exhibit-actions").hidden) return;
@@ -411,7 +418,14 @@ function updateScroll() {
     controller.state = progress > 0.5 ? "gallery" : "introduction";
 }
 window.addEventListener("scroll", updateScroll, { passive: true });
-window.addEventListener("resize", updateScroll);
+window.addEventListener("resize", () => {
+  // Changing viewport height must not turn a room visit into an exit animation.
+  if (scene?.location === "interior") {
+    gallery.scrollIntoView({ behavior: "instant", block: "start" });
+    scene.snapInside();
+  }
+  updateScroll();
+});
 function setEntranceInert(inert) {
   for (const target of [
     $("#roof-controls"),
@@ -548,6 +562,41 @@ window.galleryDiagnostics = () => ({
       }
     : null,
   vectorDrawing: scene?.vectorArtworkLoaded || false,
+  attendant: scene?.attendant
+    ? {
+        kind: scene.attendant.userData.kind,
+        stage: scene.attendant.userData.stage,
+        position: scene.attendant.position.toArray(),
+        giftVisible: scene.attendant.userData.gift.visible,
+        knees: scene.attendant.userData.legs.map((leg) => leg.knee.rotation.x),
+        elbows: scene.attendant.userData.elbows.map(
+          (elbow) => elbow.rotation.x,
+        ),
+      }
+    : null,
+  mirror: scene
+    ? {
+        position: scene.mirror.parent.position.toArray(),
+        visible: scene.mirror.parent.visible,
+      }
+    : null,
+  projector: scene
+    ? {
+        visible: scene.projector.visible,
+        lightSegments: scene.projector.children.filter((o) =>
+          o.name.startsWith("projector-light-segment"),
+        ).length,
+      }
+    : null,
+  archer: scene
+    ? {
+        draw: scene.collection.exhibits.get("hackathon").userData.parts
+          .drawElbow.rotation.y,
+        arrow: scene.collection.exhibits
+          .get("hackathon")
+          .userData.parts.arrow.position.toArray(),
+      }
+    : null,
   wallIndex: scene
     ? {
         attached: scene.wallIndex.isCSS3DObject,

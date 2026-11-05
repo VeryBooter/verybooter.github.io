@@ -133,10 +133,12 @@ export const projects = [
       id === "house"
         ? 9000
         : ["sailbot", "voxelcraft", "kichua"].includes(id)
-          ? 3800
-          : id === "cooking"
-            ? 2600
-            : 1500,
+          ? 7200
+          : id === "hackathon"
+            ? 3200
+            : id === "cooking"
+              ? 2600
+              : 1500,
     number: id === "kichua" ? "R" : String(index + 1).padStart(2, "0"),
     placeholder: true,
     links: [],

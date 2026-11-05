@@ -28,7 +28,7 @@ links: [
 ];
 ```
 
-The template makes no award, performance, or competition-result claims. Descriptive labels stand in for handwritten project names that need confirmation. The introductory biography is in `docs/index.html`. The sculptural portrait is an original placeholder created in `building.js`; replace it when you have a portrait to publish.
+The introductory biography is in `docs/index.html`. The supplied oil portrait is displayed in the gilt frame; its head-to-belly crop is controlled by the texture repeat and offset in `scene.js`, preserving the original image file.
 
 ## Organization
 
@@ -38,6 +38,9 @@ The template makes no award, performance, or competition-result claims. Descript
 - `docs/assets/js/building.js`: the courtyard, roof, hinged entrance, and enclosed gallery room.
 - `docs/assets/js/models.js`: procedural cabinet, robotic arm, and twelve object models.
 - `docs/assets/js/scene.js`: rendering, camera movement, raycasting, weather, and object animations.
+- `docs/assets/js/attendants.js`: articulated attendants, clothing, presentation props, walking, crouching, and two-bone reaching.
+- `docs/assets/js/interior.js`: panoramic room mirror, projector, and folded mirror-array light path.
+- `docs/assets/js/projector.js`: presentation slide assets and playback controls.
 - `docs/assets/js/controller.js`: navigation states and transition cancellation.
 - `docs/assets/js/main.js`: HTML interaction, fragment navigation, and scene integration.
 - `docs/assets/js/preferences.js`: safe preference storage.
@@ -53,6 +56,20 @@ Clear, Cloudy, and Rainstorm SVG icons select weather directly on the rectangula
 Open the cabinet to select its objects directly, or use the twelve-item collection index. Most transitions last 1.5 seconds, with Skip and Cancel controls. MIPS home design uses a nine-second sequence: the robot picks up a blueprint, laser-scans it, the blueprint dissolves, house components assemble, a chip emerges from the shelf and is installed by the robot, and the roof arrives last. The mug presentation lasts 2.6 seconds and includes rising steam. Photography and the lamp are effects only, and the original face drawing is displayed directly without a story dialog. The smart-house exhibit supports house/chip inspection; the game controller opens its story after a button press. Escape cancels a transition or closes a project. Closing restores focus to the corresponding index item. A URL such as `#project/sailbot` opens its project directly. Browser Back restores the previous view.
 
 Storage denial does not prevent use. If WebGL is unavailable or its context is lost, the HTML index continues to work. JavaScript is required for project content; the introduction and GitHub contact remain available without it.
+
+Attendant presentations last 7.2 seconds: walk to the cabinet, reach for the exhibit, pick it up, return, and present a scroll, tablet, or codex. The lowest shelf uses a crouch. The archer cat draws its bowstring before releasing its arrow. Mug and lantern effects run without a transition panel or story window; the drawing closes with the red close button or Escape.
+
+## Projector presentation
+
+The projector displays the two pages of `docs/assets/images/PPT.pdf` as faithful PNG renders, preserving the PDF's graphics and typography. Previous/next buttons change slides; Play/Pause advances them every five seconds. The mirror array and visible light path remain aligned with the screen on desktop and compact layouts.
+
+To replace the deck, replace the PDF and regenerate the images. On macOS:
+
+```sh
+swift scripts/render-slides.swift
+```
+
+Then update the slide entries and accessible descriptions in `docs/assets/js/projector.js` if the page count or content changed. Other platforms can export PDF pages to `docs/assets/images/projector/slide-01.png`, `slide-02.png`, and so on. The website uses these rendered pages; it does not run a native PowerPoint player.
 
 ## Check and build
 

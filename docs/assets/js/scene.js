@@ -1,5 +1,10 @@
-import { buildAttendant, poseAttendant } from "./attendants.js";
-import { buildInteriorFeatures } from "./interior.js";
+import {
+  buildAttendant,
+  poseAttendant,
+  reachAttendant,
+  crouchAttendant,
+} from "./attendants.js";
+import { buildInteriorFeatures, buildProjector } from "./interior.js";
 import { buildDaylight, updateDaylight } from "./daylight.js";
 import { animateHouse } from "./house-sequence.js";
 import * as T from "three";
@@ -76,6 +81,9 @@ export class GalleryScene {
       ).href,
       (texture) => {
         texture.colorSpace = T.SRGBColorSpace;
+        // Preserve the image proportions while framing head through belly.
+        texture.repeat.set(0.7, 0.6);
+        texture.offset.set(0.15, 0.29);
         const material = this.room.getObjectByName(
           "supplied-oil-portrait",
         ).material;
@@ -85,6 +93,7 @@ export class GalleryScene {
     );
     this.collection = buildCabinet(this.scene, projects);
     this.mirror = buildInteriorFeatures(this.scene);
+    this.projector = buildProjector(this.scene);
     this.setAttendant("roman");
     this.vectorArtworkLoaded = false;
     new SVGLoader().load(
@@ -137,8 +146,8 @@ export class GalleryScene {
     this.futureBoard.scale.setScalar(0.014);
     this.scene.add(this.futureBoard);
     this.doorControl = new CSS3DObject(document.querySelector("#enter-room"));
-    this.doorControl.position.set(0, 2.2, -4.65);
-    this.doorControl.scale.setScalar(0.02);
+    this.doorControl.position.set(0.35, 2.75, -4.68);
+    this.doorControl.scale.setScalar(0.012);
     this.scene.add(this.doorControl);
     this.roofControls.element.dataset.mounted = "true";
     this.doorControl.element.dataset.mounted = "true";
@@ -241,16 +250,23 @@ export class GalleryScene {
       );
       this.wallIndex.position.set(
         this.mobile ? 0.3 : 8.4,
-        this.mobile ? 7.8 : 4.7,
+        this.mobile ? 7.8 : 5.8,
         -32.65,
       );
       this.wallIndex.scale.setScalar(this.mobile ? 0.015 : 0.018);
       this.futureBoard.position.set(
         this.mobile ? -6.6 : 8.4,
-        this.mobile ? 7.8 : 0.3,
-        -32.65,
+        this.mobile ? 7.8 : 1.4,
+        -32.55,
       );
-      this.futureBoard.scale.setScalar(this.mobile ? 0.009 : 0.011);
+      this.projector.userData.aim(this.futureBoard.position, this.mobile);
+      this.mirror.userData.frame.position.set(
+        this.mobile ? -8.5 : 3.3,
+        this.mobile ? 4.9 : 6.9,
+        -31.5,
+      );
+      this.mirror.userData.frame.scale.setScalar(this.mobile ? 0.6 : 1);
+      this.futureBoard.scale.setScalar(0.009);
       this.renderer.setSize(innerWidth, innerHeight, false);
       this.uiRenderer.setSize(innerWidth, innerHeight);
       this.room.children
@@ -430,6 +446,14 @@ export class GalleryScene {
         parts.arrow.position.set(0, 0.6, 0.3);
         parts.arrow.rotation.set(0, 0, 0);
       }
+      if (parts.drawArm) {
+        parts.drawArm.rotation.set(0, 0, 0);
+        parts.drawElbow.rotation.set(0, 0, 0);
+        parts.bowArm.rotation.set(0, 0, 0);
+        parts.bow.rotation.set(0, 0, 0);
+        parts.bowString.geometry.attributes.position.setX(1, -0.1);
+        parts.bowString.geometry.attributes.position.needsUpdate = true;
+      }
       if (parts.satellite) {
         parts.satellite.position.set(0.75, 0.95, 0);
         parts.satellite.scale.setScalar(1);
@@ -539,35 +563,73 @@ export class GalleryScene {
     if (["sailbot", "voxelcraft", "kichua"].includes(id) && this.attendant) {
       const actor = this.attendant;
       actor.visible = true;
-      actor.position.copy(target).add(new T.Vector3(1.1, -1.9, 0));
-      actor.scale.setScalar(1.2);
-      if (this.camera) {
-        const gaze = this.collection.cabinet.worldToLocal(
-          this.camera.position.clone(),
+      const smooth = T.MathUtils.smoothstep;
+      const waiting = new T.Vector3(-4.7, 0, 3.7);
+      const pickup = new T.Vector3(base.x + 0.9, 0, base.y < 2 ? 0.85 : 1.1);
+      const foreground = this.presentationTarget(15.5).add(
+        new T.Vector3(0.7, 0, 0),
+      );
+      foreground.y = 0;
+      actor.position.lerpVectors(waiting, pickup, smooth(p, 0, 0.28));
+      if (p > 0.54)
+        actor.position.lerpVectors(pickup, foreground, smooth(p, 0.54, 0.82));
+      actor.scale.setScalar(1.9);
+      const facingCabinet = Math.atan2(
+        pickup.x - waiting.x,
+        pickup.z - waiting.z,
+      );
+      const facingViewer = this.camera
+        ? Math.atan2(
+            this.camera.position.x -
+              this.collection.cabinet.position.x -
+              foreground.x,
+            this.camera.position.z -
+              this.collection.cabinet.position.z -
+              foreground.z,
+          )
+        : 0;
+      actor.rotation.y = T.MathUtils.lerp(
+        facingCabinet,
+        Math.PI,
+        smooth(p, 0.22, 0.28),
+      );
+      if (p > 0.5)
+        actor.rotation.y = T.MathUtils.lerp(
+          Math.PI,
+          facingViewer,
+          smooth(p, 0.5, 0.62),
         );
-        gaze.y = actor.position.y;
-        actor.lookAt(this.collection.cabinet.localToWorld(gaze));
-      }
       poseAttendant(actor, p);
+      if (base.y < 2)
+        crouchAttendant(
+          actor,
+          smooth(p, 0.22, 0.34) * (1 - smooth(p, 0.5, 0.64)),
+        );
+      const reachWeight = smooth(p, 0.28, 0.39) * (1 - smooth(p, 0.48, 0.57));
+      reachAttendant(
+        actor,
+        this.collection.cabinet.localToWorld(
+          base.clone().add(new T.Vector3(0, 0.15, 0.1)),
+        ),
+        reachWeight,
+      );
       actor.updateWorldMatrix(true, true);
       const hand = this.collection.cabinet.worldToLocal(
         actor.userData.hand.getWorldPosition(new T.Vector3()),
       );
       const arrival =
         id === "kichua" ? target.clone().add(new T.Vector3(-12, 6, 0)) : base;
-      item.position.lerpVectors(
-        arrival,
-        hand,
-        T.MathUtils.smoothstep(p, 0, 0.55),
-      );
-      if (id === "kichua")
-        parts.wings.forEach(
-          (wing, i) =>
-            (wing.rotation.z =
-              (i ? -1 : 1) * Math.sin(p * 85) * (p < 0.55 ? 0.8 : 0.05)),
-        );
-      item.position.y += Math.sin(Math.min(1, p / 0.55) * Math.PI) * 1.5;
-      item.visible = p < 0.65;
+      item.position.copy(arrival);
+      if (id === "kichua") {
+        item.position.lerpVectors(arrival, base, smooth(p, 0, 0.28));
+        parts.wings.forEach((wing, i) => {
+          wing.rotation.z =
+            (i ? -1 : 1) * Math.sin(p * 85) * (p < 0.28 ? 0.8 : 0.05);
+        });
+      }
+      if (p >= 0.39)
+        item.position.lerpVectors(base, hand, smooth(p, 0.39, 0.48));
+      item.visible = p < 0.48;
       if (id === "voxelcraft") {
         item.scale.multiplyScalar(1 + Math.sin(p * 45) * 0.08);
         actor.userData.arms[0].rotation.x =
@@ -627,23 +689,27 @@ export class GalleryScene {
         this.animateSteam(item, now, true);
         break;
       case "hackathon": {
-        const direction = this.camera
-          ? item
-              .worldToLocal(this.camera.position.clone())
-              .sub(new T.Vector3(0, 0.6, 0.3))
-              .normalize()
-          : new T.Vector3(1, 0, 0);
-        parts.arrow.position
-          .set(0, 0.6, 0.3)
-          .addScaledVector(direction, p * p * 12);
-        parts.arrow.quaternion.setFromUnitVectors(
-          new T.Vector3(1, 0, 0),
-          direction,
-        );
-        this.onFrame?.({
-          effect: "arrow",
-          strength: Math.sin(Math.max(0, p - 0.5) * Math.PI * 2),
-        });
+        present(2.4);
+        const draw = T.MathUtils.smoothstep(p, 0.08, 0.48);
+        const release = T.MathUtils.smoothstep(p, 0.48, 0.58);
+        const tension = draw * (1 - release);
+        parts.drawArm.rotation.y = tension * 0.65;
+        parts.drawArm.rotation.z = tension * 0.28;
+        parts.drawElbow.rotation.y = -tension * 1.1;
+        parts.bowArm.rotation.z = -draw * 0.08;
+        parts.bow.rotation.z = draw * 0.05;
+        const vertices = parts.bowString.geometry.attributes.position;
+        vertices.setX(1, -0.1 - tension * 0.38);
+        vertices.needsUpdate = true;
+        parts.bowString.geometry.computeBoundingSphere();
+        parts.arrow.position.set(0.1 - tension * 0.38, 0.62, 0.3);
+        parts.arrow.rotation.set(0, 0, 0);
+        if (p > 0.5) {
+          const flight = T.MathUtils.smoothstep(p, 0.5, 0.94);
+          parts.arrow.position.x += flight * 13;
+          parts.arrow.position.y += Math.sin(flight * Math.PI) * 0.55;
+        }
+        this.onFrame?.({ effect: null, strength: 0 });
         break;
       }
       case "photography":
@@ -783,7 +849,8 @@ export class GalleryScene {
     this.roofControls.visible = this.entryProgress < 0.55;
     this.wallIndex.visible = this.entryProgress > 0.99;
     this.futureBoard.visible = this.entryProgress > 0.99;
-    this.mirror.visible = this.entryProgress > 0.9;
+    this.mirror.userData.frame.visible = this.entryProgress > 0.9;
+    this.projector.visible = this.entryProgress > 0.9;
     updateDaylight(this);
     this.doorControl.visible = this.entryProgress < 0.2;
     const pose = cameraPose(
@@ -816,6 +883,7 @@ export class GalleryScene {
       this.preferences.motion,
     );
     this.animate(now);
+    this.mirror.userData.capture(this.renderer, now);
     this.renderer.render(this.scene, this.camera);
     this.uiRenderer.render(this.scene, this.camera);
     this.raf = requestAnimationFrame(this.tick);

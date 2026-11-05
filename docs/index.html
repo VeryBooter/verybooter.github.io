@@ -222,11 +222,30 @@
             A living collection. Project stories are editable template content.
           </p>
         </aside>
-        <aside id="future-board" aria-label="Future projects">
-          <span>ON THE DRAWING BOARD</span>
-          <h3>AirBattle</h3>
-          <p>Future project · coming later</p>
-          <div aria-hidden="true">✈ ─ ─ ─ ↗</div>
+        <aside id="future-board" aria-label="Projected presentation">
+          <div class="projection-slide" aria-live="polite">
+            <img
+              id="projected-slide"
+              src="/assets/images/projector/slide-01.png"
+              alt="Slide 1: Air Battle — A modernized aerial warfare with well integrated EW, C4ISR feature."
+            />
+          </div>
+          <div
+            class="projection-controls"
+            role="group"
+            aria-label="Presentation controls"
+          >
+            <button id="slide-previous" aria-label="Previous slide">←</button>
+            <button
+              id="slide-play"
+              aria-label="Play presentation"
+              aria-pressed="false"
+            >
+              Play
+            </button>
+            <span id="slide-count">1 / 2</span>
+            <button id="slide-next" aria-label="Next slide">→</button>
+          </div>
         </aside>
       </section>
       <section
@@ -353,13 +372,13 @@
           />
         </svg>
         <svg
-          viewBox="0 0 64 64"
+          viewBox="0 -14 64 80"
           fill="none"
           class="theta-mark"
           aria-label="Kevin Li's theta logo"
           role="img"
         >
-          <path class="logo-top" d="M32 3v9M11 27a21 21 0 0 1 42 0" />
+          <path class="logo-top" d="M32 -10V3M11 29a21 21 0 0 1 42 0" />
           <path class="logo-bottom" d="M11 37a21 21 0 0 0 42 0" />
           <circle class="logo-centre" pathLength="1" cx="32" cy="32" r="8" />
           <path class="logo-diameter" pathLength="1" d="M24 32h16" />

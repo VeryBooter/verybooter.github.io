@@ -415,26 +415,34 @@ export function buildObject(id) {
         0.075,
         "orange",
       );
+      parts.bow = group(root, [0.43, 0.62, 0.3]);
       tube(
-        root,
+        parts.bow,
         [
-          [0.34, 0.16, 0.25],
-          [0.52, 0.56, 0.25],
-          [0.35, 1.05, 0.25],
+          [0, -0.46, 0],
+          [0.19, 0, 0],
+          [0, 0.46, 0],
         ],
         0.025,
         "brass",
       );
-      tube(
-        root,
-        [
-          [0.34, 0.16, 0.25],
-          [0.35, 1.05, 0.25],
-        ],
-        0.008,
-        "cream",
+      parts.bowString = new T.Line(
+        new T.BufferGeometry().setFromPoints([
+          new T.Vector3(0, -0.46, 0),
+          new T.Vector3(-0.1, 0, 0),
+          new T.Vector3(0, 0.46, 0),
+        ]),
+        new T.LineBasicMaterial({ color: 0xe9dfc5 }),
       );
-      sphere(root, 0.08, "cream", [0.45, 0.55, 0.27]);
+      parts.bow.add(parts.bowString);
+      parts.bowArm = group(root, [0.22, 0.56, 0.12]);
+      sphere(parts.bowArm, 0.075, "orange", [0.12, 0.025, 0.07], [2, 1, 1]);
+      sphere(parts.bowArm, 0.07, "cream", [0.23, 0.06, 0.18]);
+      parts.drawArm = group(root, [-0.22, 0.56, 0.12]);
+      sphere(parts.drawArm, 0.075, "orange", [0.08, -0.015, 0.06], [1.6, 1, 1]);
+      parts.drawElbow = group(parts.drawArm, [0.15, -0.02, 0.08]);
+      sphere(parts.drawElbow, 0.065, "orange", [0.1, 0.045, 0.06], [1.8, 1, 1]);
+      sphere(parts.drawElbow, 0.075, "cream", [0.23, 0.08, 0.1]);
       parts.arrow = group(root, [0, 0.6, 0.3]);
       cylinder(
         parts.arrow,

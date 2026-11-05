@@ -2,6 +2,8 @@ import { test, expect } from "@playwright/test";
 import { mkdir } from "node:fs/promises";
 import { projects } from "../docs/assets/js/catalogue.js";
 
+test.use({ actionTimeout: 10000 });
+
 const screenshotDirectory = "artifacts/browser/screenshots";
 
 async function ready(page, hash = "") {
@@ -79,7 +81,9 @@ for (const [name, width, height] of [
     await page.waitForTimeout(500);
     await capture(page, `${name}-cabinet-open`);
     await page.locator('[data-project="sailbot"]').click();
-    await expect(page.locator("#project-dialog")).toBeVisible();
+    await expect(page.locator("#project-dialog")).toBeVisible({
+      timeout: 10000,
+    });
     await capture(page, `${name}-project`);
     await page.locator("#close-detail").click();
     await expect(page.locator("#project-dialog")).not.toBeVisible();
@@ -123,7 +127,7 @@ test("all exhibits open, close, and restore keyboard focus in a real browser", a
       });
       await expect(page.locator("#project-dialog")).not.toBeVisible();
       await capture(page, "face-drawing-inspection");
-      await page.locator("#end-exhibit").click();
+      await page.locator("#close-inspection").click();
       continue;
     }
     if (project.id === "house") {
@@ -146,7 +150,9 @@ test("all exhibits open, close, and restore keyboard focus in a real browser", a
       await capture(page, "controller-inspection");
       await page.locator("#game-buttons button").first().click();
     }
-    await expect(page.locator("#project-dialog")).toBeVisible();
+    await expect(page.locator("#project-dialog")).toBeVisible({
+      timeout: 10000,
+    });
     await expect(page.locator("#detail-title")).toHaveText(project.title);
     await expect(page).toHaveURL(new RegExp(`#project/${project.id}$`));
     await page.keyboard.press("Escape");
@@ -225,7 +231,7 @@ test("project links bypass the entrance and browser Back closes a selected proje
   await page.locator("#close-detail").click();
   await expect(page).toHaveURL(/#gallery$/);
   await page.locator('[data-project="drone"]').click();
-  await expect(page.locator("#project-dialog")).toBeVisible();
+  await expect(page.locator("#project-dialog")).toBeVisible({ timeout: 10000 });
   await page.goBack();
   await expect(page.locator("#project-dialog")).not.toBeVisible();
 });
@@ -249,13 +255,19 @@ test("roof controls, vector artwork, two white flashes, nozzle exhaust, and red 
   expect(inside.shelfPosition[2]).toBeLessThan(inside.cameraPosition[2]);
   await page.clock.pauseAt(new Date(Date.now() + 120000));
   await page.locator('[data-project="voxelcraft"]').click();
-  await page.clock.fastForward(1292);
-  await expect(page.locator("#transition-effect")).toHaveAttribute("data-effect", "tnt-white");
+  await page.clock.fastForward(2448);
+  await expect(page.locator("#transition-effect")).toHaveAttribute(
+    "data-effect",
+    "tnt-white",
+  );
   await capture(page, "tnt-interrupted-white");
   await page.clock.fastForward(700);
-  await expect(page.locator("#transition-effect")).toHaveAttribute("data-effect", "");
+  await expect(page.locator("#transition-effect")).toHaveAttribute(
+    "data-effect",
+    "",
+  );
   await capture(page, "tnt-guard-interruption");
-  await page.clock.fastForward(1808);
+  await page.clock.fastForward(4052);
   await page.locator("#close-detail").click();
   await page.locator('[data-project="rocket"]').click();
   await page.clock.runFor(1125);
@@ -353,8 +365,8 @@ test("MIPS home visibly scans, assembles, installs the shelf chip, and places ro
   await page.locator('[data-project="cooking"]').click();
   await page.clock.runFor(1100);
   await capture(page, "steaming-mug");
-  await page.locator("#cancel-transition").click();
   await expect(page.locator("#transition")).not.toBeVisible();
+  await page.clock.runFor(1600);
 });
 
 test("original PDF face is shown as vectors and wall numbers have accessible project names", async ({
@@ -372,12 +384,14 @@ test("original PDF face is shown as vectors and wall numbers have accessible pro
     timeout: 12000,
   });
   await capture(page, "original-pdf-face-vectors");
-  await page.locator("#end-exhibit").click();
+  await page.locator("#close-inspection").click();
   await page.locator('[data-project="sailbot"]').focus();
   await expect(page.locator("#object-label")).toContainText("SailBot");
   const rect = await page.locator(".collection-index").boundingBox();
   expect(rect.width).toBeLessThan(350);
-  expect(rect.height).toBeLessThan(250);
+  expect(rect.height).toBeLessThan(page.viewportSize().height * 0.4);
+  const projector = await page.locator("#future-board").boundingBox();
+  expect(rect.y + rect.height).toBeLessThan(projector.y);
 });
 
 test("weather toggles remain independent and render in the courtyard", async ({
@@ -429,7 +443,7 @@ test("portrait, wall controls and attendants hand off project stories", async ({
   for (const kind of ["roman", "butler", "fox"]) {
     await page.locator(`[data-attendant="${kind}"]`).click();
     await page.locator('[data-project="sailbot"]').click();
-    await page.clock.fastForward(2700);
+    await page.clock.fastForward(6500);
     await capture(page, `attendant-${kind}-handoff`);
     await page.locator("#skip-transition").click();
     await expect(page.locator("#project-dialog")).toHaveAttribute(
@@ -459,7 +473,7 @@ test("research toucan arrives and the guard interrupts TNT", async ({
   await expect(page.locator("#detail-title")).toHaveText("Kichua Research");
   await page.locator("#close-detail").click();
   await page.locator('[data-project="voxelcraft"]').click();
-  await page.clock.fastForward(1292);
+  await page.clock.fastForward(2448);
   await capture(page, "voxelcraft-interrupted-flash");
   await page.clock.fastForward(500);
   await expect(page.locator("#transition-effect")).toHaveAttribute(

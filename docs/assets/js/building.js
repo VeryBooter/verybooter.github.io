@@ -41,7 +41,32 @@ export function buildBuilding(
       box(leaf, 2.6, 0.075, 0.06, "brass", [0, y, 0.12]);
     for (const x of [-1.18, 1.18])
       box(leaf, 0.065, 5.4, 0.06, "brass", [x, 0, 0.12]);
-    sphere(leaf, 0.075, "brass", [-sign * 1.1, -0.1, 0.19]);
+    const handleX = -sign * 1.05;
+    const rose = cylinder(
+      leaf,
+      0.13,
+      0.13,
+      0.045,
+      "brass",
+      [handleX, -0.1, 0.12],
+      [Math.PI / 2, 0, 0],
+    );
+    rose.name = "entrance-handle-rosette";
+    cylinder(
+      leaf,
+      0.045,
+      0.045,
+      0.16,
+      "brass",
+      [handleX, -0.1, 0.21],
+      [Math.PI / 2, 0, 0],
+    );
+    const lever = box(leaf, 0.38, 0.065, 0.075, "brass", [
+      handleX + sign * 0.14,
+      -0.1,
+      0.3,
+    ]);
+    lever.name = "entrance-brass-lever";
     entranceDoors.push({ hinge, sign });
   }
   for (const x of [-12.5, 12.5]) {
@@ -121,7 +146,7 @@ export function buildBuilding(
     );
   mesh(logo, new T.TorusGeometry(0.105, 0.012, 5, 24), "brass");
   box(logo, 0.21, 0.016, 0.02, "brass");
-  box(logo, 0.02, 0.15, 0.02, "brass", [0, 0.36, 0]);
+  box(logo, 0.02, 0.18, 0.02, "brass", [0, 0.43, 0]);
   for (const z of [-1, 4, -10, -16, -22, -28])
     box(building, 26, 0.006, 0.018, "brass", [0, -0.11, z]);
   for (const x of [-12, -6, 0, 6, 12])
@@ -132,7 +157,7 @@ export function buildBuilding(
   box(portrait, 3.2, 4.1, 0.12, "green");
   ornateFrame(portrait, 3.5, 4.4);
   const portraitImage = new T.Mesh(
-    new T.PlaneGeometry(2.7333, 4.1),
+    new T.PlaneGeometry(3.1889, 4.1),
     new T.MeshBasicMaterial({ color: 0xffffff }),
   );
   portraitImage.name = "supplied-oil-portrait";
