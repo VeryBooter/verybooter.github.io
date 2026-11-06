@@ -578,6 +578,7 @@ window.galleryDiagnostics = () => ({
     ? {
         position: scene.mirror.parent.position.toArray(),
         visible: scene.mirror.parent.visible,
+        ...scene.mirror.userData.stats,
       }
     : null,
   projector: scene
@@ -628,6 +629,7 @@ window.galleryDiagnostics = () => ({
         };
       })()
     : null,
+  frameTimes: scene?.frameTimes.slice() || [],
   drawCalls: scene?.renderer.info.render.calls,
   triangles: scene?.renderer.info.render.triangles,
   averageFps: scene?.frameTimes.length

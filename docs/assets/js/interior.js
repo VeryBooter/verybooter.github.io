@@ -1,19 +1,15 @@
 import * as T from "three";
+import { createMirrorCapture } from "./mirror-capture.js";
 // A shallow convex mirror gives a wide room view rather than just the cabinet's top.
 export function buildInteriorFeatures(scene) {
   const frame = new T.Group();
   frame.position.set(3.3, 6.9, -31.5);
   frame.rotation.x = 0.08;
   scene.add(frame);
-  const target = new T.WebGLCubeRenderTarget(256);
-  const captureCamera = new T.CubeCamera(0.1, 90, target);
-  captureCamera.position.copy(frame.position);
-  scene.add(captureCamera);
   const mirror = new T.Mesh(
     new T.SphereGeometry(1, 48, 24),
     new T.MeshBasicMaterial({
       color: 0xf0f4f2,
-      envMap: target.texture,
       reflectivity: 1,
       combine: T.MixOperation,
     }),
@@ -47,19 +43,8 @@ export function buildInteriorFeatures(scene) {
       brass,
     ),
   );
-  let lastCapture = -Infinity;
   mirror.userData.frame = frame;
-  mirror.userData.capture = (renderer, now) => {
-    if (!frame.visible || now - lastCapture < 1000) return;
-    const shadows = renderer.shadowMap.autoUpdate;
-    frame.visible = false;
-    renderer.shadowMap.autoUpdate = false;
-    captureCamera.position.copy(frame.position);
-    captureCamera.update(renderer, scene);
-    renderer.shadowMap.autoUpdate = shadows;
-    frame.visible = true;
-    lastCapture = now;
-  };
+  Object.assign(mirror.userData, createMirrorCapture(scene, frame, mirror));
   return mirror;
 }
 

@@ -89,6 +89,7 @@ export class GalleryScene {
         ).material;
         material.map = texture;
         material.needsUpdate = true;
+        this.mirror?.userData.invalidate("portrait-loaded");
       },
     );
     this.collection = buildCabinet(this.scene, projects);
@@ -119,6 +120,7 @@ export class GalleryScene {
         }
         artwork.add(vectors);
         this.vectorArtworkLoaded = true;
+        this.mirror.userData.invalidate("drawing-loaded");
       },
     );
     this.uiRenderer = new CSS3DRenderer();
@@ -267,6 +269,7 @@ export class GalleryScene {
       );
       this.mirror.userData.frame.scale.setScalar(this.mobile ? 0.6 : 1);
       this.futureBoard.scale.setScalar(0.009);
+      this.mirror.userData.invalidate("resize", true);
       this.renderer.setSize(innerWidth, innerHeight, false);
       this.uiRenderer.setSize(innerWidth, innerHeight);
       this.room.children
@@ -359,8 +362,10 @@ export class GalleryScene {
     this.attendant = buildAttendant(kind);
     this.attendant.visible = false;
     this.collection.cabinet.add(this.attendant);
+    this.mirror?.userData.invalidate("attendant");
   }
   setPreferences(preferences) {
+    this.mirror?.userData.invalidate("daylight");
     this.preferences = { ...preferences };
     const dark = preferences.theme === "dark";
     const weather = preferences.weather;
@@ -429,6 +434,7 @@ export class GalleryScene {
     this.onHover?.(null);
   }
   reset() {
+    this.mirror?.userData.invalidate("exhibit-reset");
     if (this.attendant) this.attendant.visible = false;
     const { exhibits, shoulder, elbow, beam, arm, grip, upper, lower, pad } =
       this.collection;
@@ -509,6 +515,7 @@ export class GalleryScene {
     if (this.active?.id === "house") {
       this.active.phase = phase;
       this.active.start = performance.now();
+      this.mirror?.userData.invalidate("house-phase");
     }
   }
   pressGameButton(index) {
@@ -839,9 +846,14 @@ export class GalleryScene {
       this.onLocationChange?.(location);
     }
     const opening = this.entryTarget === 1 || this.entryProgress > 0.2 ? 1 : 0;
+    const previousEntranceAngle = this.entranceAngle;
     this.entranceAngle = this.preferences.motion
       ? lerp(this.entranceAngle, opening, Math.min(1, delta * 6))
       : opening;
+    if (Math.abs(this.entranceAngle - opening) < 0.005)
+      this.entranceAngle = opening;
+    if (previousEntranceAngle !== this.entranceAngle)
+      this.mirror.userData.invalidate("entrance-doors");
     this.room.userData.entranceDoors.forEach(
       ({ hinge, sign }) =>
         (hinge.rotation.y = -sign * this.entranceAngle * 1.65),
@@ -867,9 +879,13 @@ export class GalleryScene {
     this.collection.cabinet.visible = true;
     this.room.userData.portrait.visible = this.entryProgress < 0.5;
     const target = this.open ? 1 : 0;
+    const previousDoorAngle = this.doorAngle;
     this.doorAngle = this.preferences.motion
       ? lerp(this.doorAngle, target, Math.min(1, delta * 4))
       : target;
+    if (Math.abs(this.doorAngle - target) < 0.005) this.doorAngle = target;
+    if (previousDoorAngle !== this.doorAngle)
+      this.mirror.userData.invalidate("cabinet-doors");
     this.collection.doors.forEach(({ hinge, sign }) => {
       hinge.rotation.y = sign * this.doorAngle * 1.75;
     });
@@ -883,7 +899,17 @@ export class GalleryScene {
       this.preferences.motion,
     );
     this.animate(now);
-    this.mirror.userData.capture(this.renderer, now);
+    // A retained inspection (active != null) is not necessarily still moving.
+    const exhibitMoving =
+      !!this.active &&
+      this.active.motion &&
+      ((this.active.phase !== "chip" &&
+        now <= this.active.start + this.active.duration) ||
+        (this.active.pressed && now <= this.active.pressed.time + 280));
+    if (exhibitMoving || this.mirrorExhibitMoving)
+      this.mirror.userData.invalidate("exhibit-motion");
+    this.mirrorExhibitMoving = exhibitMoving;
+    this.mirror.userData.capture(this.renderer, this.entryProgress === 1);
     this.renderer.render(this.scene, this.camera);
     this.uiRenderer.render(this.scene, this.camera);
     this.raf = requestAnimationFrame(this.tick);
@@ -906,6 +932,7 @@ export class GalleryScene {
     this.canvas.removeEventListener("pointerdown", this.pointerDown);
     this.canvas.removeEventListener("pointerup", this.handleClick);
     this.canvas.removeEventListener("pointerleave", this.leave);
+    this.mirror.userData.dispose();
     this.renderer.dispose();
   }
 }

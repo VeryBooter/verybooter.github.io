@@ -122,3 +122,15 @@ The entrance writes only KL with cursive SVG strokes inspired by the Mac handwri
 The exhibit index is a small 01–12 plaque attached to the rear interior wall through CSS3DRenderer. Each number has a complete accessible project name, a native title, and a hover/focus label. On narrow screens the plaque sits above the cabinet. It remains an HTML grid when WebGL is unavailable.
 
 `daylight.js` builds the outdoor atmospheric sky and directional sunlight, including a low-angle sun, blue sky fill, warm highlights, and shadow-map settings. Lighting blends back to the indoor profile while entering the building.
+
+### Mirror capture and performance
+
+`mirror-capture.js` bakes the convex mirror after entry completes, rendering at most one cube face per animation frame. Two cube targets keep the displayed reflection complete while the next six faces render. Door movement, exhibit animations, atmosphere changes, asset loads, and resizing invalidate the reflection. An update that arrives during a capture schedules another complete capture so the final pose is retained. Idle rooms perform no reflection renders; retained inspections stop invalidating when their animation finishes.
+
+`galleryDiagnostics().mirror` exposes `baked`, `dirty`, `pendingFace`, `facesRendered`, `captures`, and `lastFaceMs`. `galleryDiagnostics().frameTimes` contains recent frame intervals. The mirror browser test records six seconds of real animation-frame timing and the GPU renderer in `artifacts/browser/mirror-profile.json`; it also checks idle capture counts and door, daylight, and exhibit invalidation. To measure on installed Chrome with hardware acceleration:
+
+```sh
+PLAYWRIGHT_CHANNEL=chrome npm run test:browser -- e2e/mirror.spec.js --headed
+```
+
+Keep the browser foregrounded during measurement. Software rendering (such as SwiftShader), background tabs, and concurrent workloads are not representative GPU performance measurements. The test reports timing rather than imposing a machine-dependent FPS assertion. On the November 5, 2026 Apple M1 Pro Chrome run at 1440×900, the idle sample contained 720 frames: median 8.3 ms, p95 9.2 ms, maximum 9.4 ms, and zero additional mirror captures. This establishes the under-18-ms idle target on that configuration, not on every device.

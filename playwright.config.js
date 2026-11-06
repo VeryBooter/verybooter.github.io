@@ -12,6 +12,7 @@ export default defineConfig({
   ],
   use: {
     browserName: "chromium",
+    channel: process.env.PLAYWRIGHT_CHANNEL || undefined,
     headless: true,
     baseURL: "http://127.0.0.1:5174",
     screenshot: "only-on-failure",

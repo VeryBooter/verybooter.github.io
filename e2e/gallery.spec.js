@@ -439,7 +439,9 @@ test("portrait, wall controls and attendants hand off project stories", async ({
   await page.locator("#doors").click();
   await page.clock.runFor(600);
   await capture(page, "interior-mirror-chalkboard");
-  await page.clock.pauseAt(new Date(Date.now() + 1000));
+  await page.clock.pauseAt(
+    new Date(await page.evaluate(() => Date.now() + 1000)),
+  );
   for (const kind of ["roman", "butler", "fox"]) {
     await page.locator(`[data-attendant="${kind}"]`).click();
     await page.locator('[data-project="sailbot"]').click();
@@ -463,7 +465,9 @@ test("research toucan arrives and the guard interrupts TNT", async ({
   await page.clock.install();
   await ready(page);
   await enterRoom(page);
-  await page.clock.pauseAt(new Date(Date.now() + 1000));
+  await page.clock.pauseAt(
+    new Date(await page.evaluate(() => Date.now() + 1000)),
+  );
   await page.locator('[data-project="kichua"]').click();
   await page.clock.fastForward(1600);
   await capture(page, "kichua-toucan-arrival");
