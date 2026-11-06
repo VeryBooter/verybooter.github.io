@@ -334,8 +334,8 @@ export function poseAttendant(root, p) {
   const stride = Math.sin(p * Math.PI * 16) * walking;
   legs.forEach(({ hip, knee, ankle }, i) => {
     const phase = i ? stride : -stride;
-    hip.rotation.x = phase * 0.44;
-    knee.rotation.x = Math.max(0, -phase) * 0.65;
+    hip.rotation.x = phase * 0.82;
+    knee.rotation.x = Math.max(0, -phase) * 1.18;
     ankle.rotation.x = -hip.rotation.x * 0.3 - knee.rotation.x * 0.4;
   });
   const reach = smooth(p, 0.28, 0.39) * (1 - smooth(p, 0.48, 0.58));
@@ -343,7 +343,7 @@ export function poseAttendant(root, p) {
   const present = smooth(p, 0.82, 0.97);
   arms.forEach((arm, i) => {
     arm.rotation.set(
-      (i ? -stride : stride) * 0.28 -
+      (i ? -stride : stride) * 0.65 -
         (i ? reach * 1.15 + carry * 0.34 : carry * 0.16),
       0,
       (i ? -1 : 1) * 0.08,
@@ -352,6 +352,8 @@ export function poseAttendant(root, p) {
     wrists[i].rotation.x = carry * 0.2;
   });
   root.rotation.z = stride * 0.012;
+  gift.position.set(0, 0, 0);
+  gift.scale.setScalar(1);
   gift.visible = p >= 0.48;
   gift.rotation.set(0, 0, 0);
   // Keep the front cover upright as the elbow lifts it toward the viewer.
@@ -362,14 +364,14 @@ export function poseAttendant(root, p) {
   );
   root.userData.stage =
     p < 0.28
-      ? "walking-to-cabinet"
+      ? "running-to-cabinet"
       : p < 0.48
         ? "reaching"
         : p < 0.54
           ? "picking-up"
           : p < 0.82
-            ? "returning"
-            : "presenting";
+            ? "running-back"
+            : "throwing";
 }
 
 // Analytic two-bone reach, blended into the authored gait without stretching limbs.

@@ -8,7 +8,7 @@ import {
   crouchAttendant,
 } from "../docs/assets/js/attendants.js";
 
-test("all attendants walk with bending knees, then reach a shelf without detaching the hand", () => {
+test("all attendants run with bending knees, then reach a shelf without detaching the hand", () => {
   for (const kind of ["roman", "butler", "fox"]) {
     const actor = buildAttendant(kind);
     poseAttendant(actor, 0.11);
@@ -37,7 +37,7 @@ test("all attendants walk with bending knees, then reach a shelf without detachi
       }
     }
     poseAttendant(actor, 0.95);
-    assert.equal(actor.userData.stage, "presenting");
+    assert.equal(actor.userData.stage, "throwing");
     assert.equal(actor.userData.gift.visible, true);
     assert.equal(actor.userData.gift.parent, actor.userData.hand);
     assert.ok(actor.userData.elbows[1].rotation.x < -1);

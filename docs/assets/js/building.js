@@ -146,13 +146,21 @@ export function buildBuilding(
     );
   mesh(logo, new T.TorusGeometry(0.105, 0.012, 5, 24), "brass");
   box(logo, 0.21, 0.016, 0.02, "brass");
-  box(logo, 0.02, 0.18, 0.02, "brass", [0, 0.43, 0]);
+  box(logo, 0.02, 0.18, 0.02, "brass", [0, 0.38, 0]);
   for (const z of [-1, 4, -10, -16, -22, -28])
     box(building, 26, 0.006, 0.018, "brass", [0, -0.11, z]);
   for (const x of [-12, -6, 0, 6, 12])
     box(building, 0.018, 0.006, 52, "brass", [x, -0.11, -10]);
   const portrait = new T.Group();
-  portrait.position.set(7.2, 4.2, -4.65);
+  portrait.position.set(8.5, 4.7, -32.4);
+  const bulletin = new T.Group();
+  bulletin.name = "portrait-bulletin-board";
+  bulletin.position.set(8.5, 4.4, -32.65);
+  box(bulletin, 6.2, 7.3, 0.16, "wood");
+  box(bulletin, 5.9, 7, 0.06, "cream", [0, 0, 0.12]);
+  for (const x of [-2.8, 2.8])
+    for (const y of [-3.3, 3.3]) sphere(bulletin, 0.055, "brass", [x, y, 0.2]);
+  building.add(bulletin);
   building.add(portrait);
   box(portrait, 3.2, 4.1, 0.12, "green");
   ornateFrame(portrait, 3.5, 4.4);

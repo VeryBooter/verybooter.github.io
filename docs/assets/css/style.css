@@ -2230,3 +2230,76 @@ body.no-webgl .collection-index {
 .collection-index .research-entry small {
   display: none;
 }
+
+/* One combined identity, completed in 450 ms. Its canvas occupies 75% of the viewport area. */
+.entrance-center { width: 86.60254vw; height: 86.60254vh; position: absolute; inset: 50% auto auto 50%; transform: translate(-50%, -50%); perspective: 900px; }
+.entrance-center .theta-mark { width: min(65vw, 65vh); height: 78%; top: 46%; animation: none; }
+.entrance-center .kl-monogram { position: absolute; width: min(30vw, 30vh); height: 25%; left: 50%; top: 47%; transform: translate(-50%, -50%); opacity: 1; z-index: 2; animation: none; }
+.entrance-center .kl-monogram path { animation: kl-ink 200ms ease-out both; animation-delay: 0ms !important; animation-duration: 200ms !important; stroke-width: 5; }
+.entrance-center .theta-mark .logo-centre,
+.entrance-center .theta-mark .logo-diameter { animation: logo-write 160ms ease-out both; opacity: 0.35; }
+.entrance-center .theta-mark .logo-top { animation: shell-top 400ms ease-out both; transform-origin: 32px 32px; }
+.entrance-center .theta-mark .logo-bottom { animation: shell-bottom 400ms ease-out both; transform-origin: 32px 32px; }
+@keyframes shell-top { from { transform: rotateX(160deg); opacity: 0; } to { transform: rotateX(0deg); opacity: 1; } }
+@keyframes shell-bottom { from { transform: rotateX(-160deg); opacity: 0; } to { transform: rotateX(0deg); opacity: 1; } }
+.entrance-center > span:not(.hello-script), .entrance-center > p { position: absolute; top: auto; bottom: 9%; width: 100%; left: 0; opacity: 1; animation: none; }
+.entrance-center > p { bottom: 3%; }
+.entrance-clouds { display: none; }
+#pediment-name { width: 470px; display: flex; justify-content: space-between; color: #775c34; font: 54px "DM Serif Display", serif; pointer-events: none; }
+.contact-road-sign { width: min(440px, 88vw); margin: auto; position: relative; padding-bottom: 100px; }
+.contact-road-sign::after { content: ""; position: absolute; top: 70px; bottom: 0; left: 49%; width: 14px; background: #747b78; z-index: -1; box-shadow: inset -4px 0 #414b47; }
+.contact-road-sign a { display: flex; justify-content: space-between; margin: 12px 0; padding: 20px 28px; color: #fff9e9; background: #345b4b; border: 3px solid #e2d8bb; border-radius: 6px; font-weight: 600; box-shadow: 0 5px 0 #223c32; text-decoration: none; }
+.contact-road-sign a:nth-of-type(2) { transform: rotate(-3deg); background: #3e5b75; }
+.contact-road-sign a:nth-of-type(3) { transform: rotate(2deg); background: #80583a; }
+#room-navigation { position: fixed; z-index: 35; bottom: max(18px, env(safe-area-inset-bottom)); left: 50%; transform: translateX(-50%); display: flex; gap: 6px; width: max-content; max-width: 96vw; padding: 7px; background: #f8f2e6ee; border: 1px solid #bba477; border-radius: 30px; box-shadow: 0 8px 30px #17282025; }
+#room-navigation button { padding: 10px 15px; border: 0; border-radius: 22px; color: #334d41; background: transparent; font-size: 12px; white-space: nowrap; }
+#room-navigation button[aria-pressed="true"] { background: #345547; color: #fff7e6; }
+body[data-state="entrance"] #room-navigation { visibility: hidden; }
+body[data-room-view="presentation"] .gallery-heading,
+body[data-room-view="bulletin"] .gallery-heading { visibility: hidden; }
+.gallery-heading { max-width: 190px; pointer-events: none; }
+.gallery-heading h2 { font-size: 25px; }
+.gallery-heading p:not(.eyebrow) { display: none; }
+.gallery-heading a { pointer-events: auto; }
+#house-map { width: min(900px, 94vw); max-height: 88vh; background: #f5efdf; color: #253e33; border: 1px solid #bda878; padding: 36px; }
+#house-map::backdrop { background: #142a23aa; backdrop-filter: blur(8px); }
+#house-map h2 { font: 42px "DM Serif Display", serif; margin: 8px 0 12px; }
+.map-rooms { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.map-rooms button { min-height: 90px; border: 2px solid #8d9a83; background: #fff9e9; padding: 18px; text-align: left; color: inherit; }
+.map-rooms button small { display: block; margin-top: 6px; line-height: 1.4; }
+#project-dialog[open] { animation-duration: 40ms; }
+@media(max-width: 600px) { #room-navigation { gap: 0; bottom: 10px; } #room-navigation button { padding: 10px 7px; font-size: 10px; } .map-rooms { grid-template-columns: repeat(2, 1fr); } #house-map { padding: 24px; } .gallery-heading { display: none; } }
+#space-panel { position: fixed; z-index: 25; top: 24px; left: 24px; width: 230px; max-height: calc(100vh - 120px); overflow: auto; padding: 20px; border: 1px solid #bba477; border-radius: 8px; background: #f8f2e6ed; color: #334c40; box-shadow: 0 8px 24px #18312618; }
+#space-panel h2 { margin: 8px 0; font: 30px "DM Serif Display", serif; }
+#space-panel p { font-size: 12px; line-height: 1.6; }
+#space-panel button, #space-panel a { padding: 8px 10px; border: 1px solid #b3baa9; border-radius: 4px; background: #fff9e9; color: #334c40; }
+.space-turn { display: flex; align-items: center; justify-content: space-between; font-size: 11px; margin: 15px 0; }
+#space-objects { display: grid; gap: 5px; margin-top: 10px; }
+#space-panel details { margin: 18px 0; font-size: 12px; }
+#space-links { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; font-size: 12px; }
+#cinema-player { font-size: 12px; }
+#film-file { max-width: 100%; margin: 12px 0; }
+#film-video { width: 100%; background: #15211e; }
+#music-keys { display: flex; gap: 2px; }
+#music-keys button { padding: 12px 7px; }
+body[data-space]:not([data-space="gallery"]) .gallery-heading { display: none; }
+.map-rooms button[data-zone="outside"] { background: #e6edda; }
+.map-rooms button[data-zone="work"] { background: #dfe7eb; }
+.map-rooms button[data-zone="arts"] { background: #eee0d9; }
+.map-rooms button[data-space="cabinet"] { border-color: #365b4a; background: #d7e4d8; }
+@media(max-width: 600px) { #space-panel { top: 12px; left: 12px; width: 185px; padding: 12px; max-height: 35vh; } #space-panel h2 { font-size: 23px; } }
+.gallery-heading { width: 360px; max-width: none; padding: 18px; border: 2px solid #baa57b; background: #e9dfc8; text-align: center; }
+.gallery-heading h2 { font-size: 34px; letter-spacing: 0; line-height: 1.15; margin-bottom: 0; }
+.gallery-heading .eyebrow, .gallery-heading a { display: none; }
+.gallery-heading em { color: #80623b; }
+.contact-road-sign { width: 440px; }
+.contact-road-sign h2 { font: 38px "DM Serif Display",serif; text-align: center; margin: 8px; }
+.contact-road-sign .eyebrow { text-align: center; }
+body:not(.no-webgl) .intro .intro-copy, body:not(.no-webgl) .portrait-caption { visibility: hidden; }
+.map-rooms { grid-template-columns: repeat(4, 1fr); gap: 18px; padding: 18px; background: repeating-linear-gradient(0deg,transparent 0 23px,#a8b59c22 23px 24px),repeating-linear-gradient(90deg,transparent 0 23px,#a8b59c22 23px 24px); border: 1px solid #bdc4b0; }
+.map-rooms button { position: relative; border-width: 3px; box-shadow: inset 0 0 0 3px #f9f4e7; }
+.map-rooms button::after { content: ""; position: absolute; width: 20px; height: 4px; bottom: -4px; left: 35%; background: #f5efdf; border-top: 1px solid #93a38c; }
+@media(max-width: 700px) { .map-rooms { grid-template-columns: repeat(2,1fr); gap: 12px; padding: 10px; } }
+/* Inspection actions must clear the persistent room navigation on every viewport. */
+#exhibit-actions { bottom: max(92px, calc(env(safe-area-inset-bottom) + 78px)); z-index: 36; }
+@media(max-width: 600px) { #exhibit-actions { width: calc(100% - 24px); flex-wrap: wrap; gap: 8px 12px; padding: 12px; } #preview-title { font-size: 16px; } }

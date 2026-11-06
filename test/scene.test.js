@@ -95,6 +95,8 @@ test("desktop, tablet, and phone camera poses keep every exhibit selectable", ()
 test("all twelve animation paths run through their timeline and reset transforms", () => {
   const engine = Object.create(GalleryScene.prototype);
   engine.scene = new T.Scene();
+  engine.camera = new T.PerspectiveCamera();
+  engine.camera.position.set(0, 4.9, -14);
   engine.collection = buildCabinet(engine.scene, projects);
   engine.setAttendant("roman");
   engine.particles = new T.InstancedMesh(
@@ -162,6 +164,8 @@ test("camera crosses the open entrance before turning toward the interior shelf"
 test("The attendant interrupts the TNT flash and exhaust follows the rocket nozzle", () => {
   const engine = Object.create(GalleryScene.prototype);
   engine.scene = new T.Scene();
+  engine.camera = new T.PerspectiveCamera();
+  engine.camera.position.set(0, 4.9, -14);
   engine.collection = buildCabinet(engine.scene, projects);
   engine.setAttendant("roman");
   engine.particles = new T.InstancedMesh(
@@ -180,14 +184,14 @@ test("The attendant interrupts the TNT flash and exhaust follows the rocket nozz
     frame = value;
   };
   engine.select("voxelcraft", true, 3800);
-  engine.animate(engine.active.start + .34 * 3800);
+  engine.animate(engine.active.start + 0.34 * 3800);
   assert.equal(frame.effect, "tnt-white");
-  assert.ok(frame.strength > .99);
-  engine.animate(engine.active.start + .5 * 3800);
+  assert.ok(frame.strength > 0.99);
+  engine.animate(engine.active.start + 0.5 * 3800);
   assert.equal(frame.effect, null);
   assert.equal(engine.collection.exhibits.get("voxelcraft").visible, false);
   assert.ok(engine.attendant.userData.arms[0].rotation.x < -1);
-  engine.animate(engine.active.start + .8 * 3800);
+  engine.animate(engine.active.start + 0.8 * 3800);
   assert.equal(engine.attendant.userData.gift.visible, true);
   engine.select("rocket");
   engine.animate(engine.active.start + 1125);
@@ -202,6 +206,8 @@ test("The attendant interrupts the TNT flash and exhaust follows the rocket nozz
 test("MIPS blueprint scan precedes wall assembly, chip insertion, and final roof", () => {
   const engine = Object.create(GalleryScene.prototype);
   engine.scene = new T.Scene();
+  engine.camera = new T.PerspectiveCamera();
+  engine.camera.position.set(0, 4.9, -14);
   engine.collection = buildCabinet(engine.scene, projects);
   engine.setAttendant("roman");
   engine.particles = new T.InstancedMesh(

@@ -1,6 +1,6 @@
 // Rendering is deliberately independent of navigation and transition ownership.
 export class GalleryController {
-  constructor({ onChange = () => {}, duration = 1500 } = {}) {
+  constructor({ onChange = () => {}, duration = 750 } = {}) {
     this.state = "introduction";
     this.activeId = null;
     this.duration = duration;

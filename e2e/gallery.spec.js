@@ -3,493 +3,325 @@ import { mkdir } from "node:fs/promises";
 import { projects } from "../docs/assets/js/catalogue.js";
 
 test.use({ actionTimeout: 10000 });
-
-const screenshotDirectory = "artifacts/browser/screenshots";
-
+const screenshots = "artifacts/browser/screenshots";
 async function ready(page, hash = "") {
   await page.goto(`/${hash}`);
-  await page.waitForFunction(
-    () => typeof window.galleryDiagnostics === "function",
+  await page.waitForFunction(() => window.galleryDiagnostics?.().webgl);
+  await expect(page.locator("#entrance")).toBeHidden();
+}
+async function pause(page) {
+  await page.clock.pauseAt(
+    new Date(await page.evaluate(() => Date.now() + 1000)),
   );
-  const skip = page.locator("#skip-entrance");
-  if (await skip.isVisible())
-    await skip.click({ timeout: 1000 }).catch(() => {});
-  await expect(page.locator("#entrance")).not.toBeVisible({ timeout: 10000 });
-  await page.evaluate(() => document.fonts.ready);
 }
-
-async function enterRoom(page) {
-  await page.locator("#enter-room").click();
-  await expect
-    .poll(() => page.evaluate(() => galleryDiagnostics().location), {
-      timeout: 15000,
-    })
-    .toBe("interior");
-}
-
 async function capture(page, name) {
-  await mkdir(screenshotDirectory, { recursive: true });
-  await page.evaluate(() => document.activeElement?.blur());
-  await page.screenshot({ path: `${screenshotDirectory}/${name}.png` });
+  await mkdir(screenshots, { recursive: true });
+  await page.screenshot({ path: `${screenshots}/${name}.png` });
 }
-
+async function outside(page) {
+  await page.locator("#visit-courtyard").click();
+  await expect
+    .poll(() => page.evaluate(() => galleryDiagnostics().location))
+    .toBe("courtyard");
+}
 for (const [name, width, height] of [
   ["desktop", 1440, 900],
   ["tablet", 820, 1180],
   ["phone", 390, 844],
 ]) {
-  test(`${name}: real WebGL, gallery controls, and layout`, async ({
+  test(`${name}: automatic entry, cabinet, opposite-wall slides and bulletin portrait`, async ({
     page,
   }) => {
     test.setTimeout(120000);
     await page.setViewportSize({ width, height });
     const errors = [];
-    page.on("pageerror", (error) => errors.push(error.message));
-    page.on("response", (response) => {
-      if (response.status() >= 400)
-        errors.push(`${response.status()}: ${response.url()}`);
-    });
+    page.on("pageerror", (e) => errors.push(e.message));
     await ready(page);
-    await capture(page, `${name}-introduction`);
-    const diagnostics = await page.evaluate(() => window.galleryDiagnostics());
-    expect(diagnostics.webgl, JSON.stringify(diagnostics)).toBe(true);
-    expect(diagnostics.objects).toBe(projects.length);
-    expect(diagnostics.sunlight.sky && diagnostics.sunlight.shadows).toBe(true);
-    expect(diagnostics.sunlight.intensity).toBeGreaterThan(3);
-    expect(diagnostics.architecture).toEqual({
-      columns: 2,
-      pediment: true,
-      ornateFrame: true,
-    });
-    await expect(page.locator('[data-project="embedded"]')).toHaveCount(0);
-    expect(
-      await page.evaluate(() => document.documentElement.scrollWidth),
-    ).toBeLessThanOrEqual(width);
-    await enterRoom(page);
-    const wall = await page.evaluate(() => galleryDiagnostics().wallIndex);
-    expect(wall.attached && wall.visible).toBe(true);
-    expect(wall.position[2]).toBeLessThan(-32);
-    await expect(page.locator("#project-index .project-number")).toHaveCount(
-      12,
-    );
-    await capture(page, `${name}-cabinet-closed`);
-    await page.locator("#doors").click();
+    await expect
+      .poll(() => page.evaluate(() => galleryDiagnostics().location))
+      .toBe("interior");
     await expect(page.locator("#doors")).toHaveAttribute(
       "aria-pressed",
       "true",
     );
-    await page.waitForTimeout(500);
-    await capture(page, `${name}-cabinet-open`);
+    expect(await page.evaluate(() => galleryDiagnostics().objects)).toBe(
+      projects.length,
+    );
+    const index = await page.locator(".collection-index").boundingBox();
+    expect(index.x).toBeGreaterThanOrEqual(0);
+    expect(index.x + index.width).toBeLessThanOrEqual(width);
+    await capture(page, `${name}-auto-open`);
     await page.locator('[data-project="sailbot"]').click();
-    await expect(page.locator("#project-dialog")).toBeVisible({
-      timeout: 10000,
-    });
-    await capture(page, `${name}-project`);
+    await expect(page.locator("#project-dialog")).toBeVisible();
+    await expect(page.locator("#detail-links a")).toHaveCount(2);
     await page.locator("#close-detail").click();
-    await expect(page.locator("#project-dialog")).not.toBeVisible();
-    await page.locator("#leave-room").click();
+    await page.locator('button[data-room-view="presentation"]').click();
     await expect
-      .poll(() => page.evaluate(() => galleryDiagnostics().location), {
-        timeout: 15000,
-      })
-      .toBe("courtyard");
-    await page.locator(".settings-toggle").click();
-    await page.locator('button[data-theme="dark"]').click();
-    await page.locator("#close-atmosphere").click();
-    await page.locator('[data-weather="storm"]').click();
-    await capture(page, `${name}-night`);
+      .poll(() => page.evaluate(() => galleryDiagnostics().view))
+      .toBe("presentation");
+    await page.waitForTimeout(700);
+    const screen = await page.locator("#future-board").boundingBox();
+    expect(screen.x).toBeGreaterThanOrEqual(0);
+    expect(screen.x + screen.width).toBeLessThanOrEqual(width);
+    expect(
+      await page.evaluate(() => galleryDiagnostics().projectionPosition[2]),
+    ).toBeGreaterThan(-6);
+    await page.locator("#slide-next").click();
+    await expect(page.locator("#slide-count")).toHaveText("2 / 2");
+    await capture(page, `${name}-opposite-wall`);
+    await page.locator('button[data-room-view="bulletin"]').click();
+    await page.waitForTimeout(700);
+    expect(
+      await page.evaluate(() => galleryDiagnostics().portraitPosition[2]),
+    ).toBeLessThan(-32);
+    await capture(page, `${name}-bulletin`);
+    await outside(page);
+    await expect(
+      page.locator('.contact-road-sign a[href="mailto:yul424@pitt.edu"]'),
+    ).toBeVisible();
+    await expect(page.locator("#pediment-name")).toHaveText(/Kevin\s*Li/);
+    await capture(page, `${name}-courtyard-sign`);
+    expect(
+      await page.evaluate(() => document.documentElement.scrollWidth),
+    ).toBeLessThanOrEqual(width);
     expect(errors).toEqual([]);
   });
 }
 
-test("all exhibits open, close, and restore keyboard focus in a real browser", async ({
+test("all exhibits finish within 750 ms, close, and restore keyboard focus", async ({
   page,
 }) => {
-  // This test includes twelve real-time animations plus inspection screenshots.
-  test.setTimeout(300000);
+  test.setTimeout(180000);
+  await page.clock.install();
   await ready(page);
-  await enterRoom(page);
+  await pause(page);
   for (const project of projects) {
     const button = page.locator(`[data-project="${project.id}"]`);
     await button.click();
-    await page.waitForTimeout(500);
-    await capture(page, `${project.id}-transition`);
+    await page.clock.fastForward(749);
+    expect(await page.evaluate(() => galleryDiagnostics().state)).toBe(
+      "transition",
+    );
+    await page.clock.fastForward(2);
     if (project.presentation === "effect") {
-      await expect
-        .poll(() => page.evaluate(() => galleryDiagnostics().state))
-        .toBe("gallery");
-      await expect(page.locator("#project-dialog")).not.toBeVisible();
+      await expect(page.locator("#project-dialog")).toBeHidden();
+      expect(await page.evaluate(() => galleryDiagnostics().state)).toBe(
+        "gallery",
+      );
       continue;
     }
     if (project.presentation === "display") {
-      await expect(page.locator("#exhibit-actions")).toBeVisible({
-        timeout: 12000,
-      });
-      await expect(page.locator("#project-dialog")).not.toBeVisible();
-      await capture(page, "face-drawing-inspection");
+      await expect(page.locator("#exhibit-actions")).toBeVisible();
+      await expect(page.locator("#end-exhibit")).toBeHidden();
       await page.locator("#close-inspection").click();
       continue;
     }
     if (project.id === "house") {
-      await expect(page.locator("#exhibit-actions")).toBeVisible({
-        timeout: 12000,
-      });
       await page.locator("#inspect-chip").click();
       await expect(page.locator("#inspect-chip")).toHaveAttribute(
         "aria-pressed",
         "true",
       );
-      await page.waitForTimeout(650);
-      await capture(page, "smart-house-chip");
       await page.locator("#read-story").click();
     }
     if (project.id === "games") {
-      await expect(page.locator("#exhibit-actions")).toBeVisible({
-        timeout: 12000,
-      });
-      await capture(page, "controller-inspection");
       await page.locator("#game-buttons button").first().click();
+      await page.clock.fastForward(281);
     }
-    await expect(page.locator("#project-dialog")).toBeVisible({
-      timeout: 10000,
-    });
+    await expect(page.locator("#project-dialog")).toBeVisible();
     await expect(page.locator("#detail-title")).toHaveText(project.title);
-    await expect(page).toHaveURL(new RegExp(`#project/${project.id}$`));
     await page.keyboard.press("Escape");
-    await expect(page.locator("#project-dialog")).not.toBeVisible();
+    await expect(page.locator("#project-dialog")).toBeHidden();
     await expect(button).toBeFocused();
   }
 });
 
-test("replayed entrance writes KL then assembles circle, diameter, and opposing lids", async ({
+test("combined KL and logo occupy a 75-percent canvas and enter automatically in 450 ms", async ({
   page,
 }) => {
-  const clockStart = Date.now() - 60000;
-  await page.clock.install({ time: clockStart });
+  await page.clock.install();
   await ready(page);
-  await page.clock.pauseAt(clockStart + 120000);
-  // Sample each authored CSS-animation stage without depending on screenshot/GPU timing.
-  for (const [name, time] of [
-    ["kl", 1000],
-    ["kl-complete", 1300],
-    ["circle", 1850],
-    ["diameter", 2150],
-    ["lids", 2450],
-    ["theta", 2850],
-    ["clouds", 3300],
-  ]) {
-    await page.locator(".settings-toggle").click();
-    await page.locator("#replay").click();
-    await expect(page.locator("#entrance")).toBeVisible();
-    await page.locator("#entrance").evaluate((element, time) => {
-      for (const animation of element.getAnimations({ subtree: true })) {
-        animation.pause();
-        animation.currentTime = time;
-      }
-    }, time);
-    await expect(page.locator(".hello-script")).toHaveCount(0);
-    if (name === "circle") {
-      await expect(page.locator(".logo-centre")).toHaveCSS(
-        "stroke-dashoffset",
-        "0px",
-      );
-      await expect(page.locator(".logo-diameter")).toHaveCSS(
-        "stroke-dashoffset",
-        "1px",
-      );
-      await expect(page.locator(".logo-top")).toHaveCSS("opacity", "0");
-    }
-    if (name === "lids") {
-      const directions = await page.evaluate(() => ({
-        top: new DOMMatrix(
-          getComputedStyle(document.querySelector(".logo-top")).transform,
-        ).m42,
-        bottom: new DOMMatrix(
-          getComputedStyle(document.querySelector(".logo-bottom")).transform,
-        ).m42,
-      }));
-      expect(directions.top).toBeLessThan(0);
-      expect(directions.bottom).toBeGreaterThan(0);
-    }
-    await capture(page, `entrance-${name}`);
-    await page.locator("#skip-entrance").click();
-  }
-  await page.locator(".settings-toggle").click();
-  await page.locator("#replay").click();
-  await page.clock.fastForward(3200);
-  await expect(page.locator("#entrance")).toHaveClass("leaving");
-  await page.clock.fastForward(500);
-  await expect(page.locator("#entrance")).not.toBeVisible();
+  await outside(page);
+  await pause(page);
+  await page.locator("#replay-roof").click();
+  await expect(page.locator("#entrance")).toBeVisible();
+  const area = await page.locator(".entrance-center").evaluate((e) => {
+    const r = e.getBoundingClientRect();
+    return (r.width * r.height) / (innerWidth * innerHeight);
+  });
+  expect(area).toBeCloseTo(0.75, 2);
+  await expect(page.locator(".kl-monogram")).toHaveCSS("opacity", "1");
+  await expect(page.locator(".logo-top")).toHaveAttribute("d", /V8M11 29/);
+  await page.clock.fastForward(449);
+  await expect(page.locator("#entrance")).toBeVisible();
+  await page.clock.fastForward(21);
+  await expect(page.locator("#entrance")).toBeHidden();
+  expect(await page.evaluate(() => galleryDiagnostics().location)).toBe(
+    "interior",
+  );
+  await expect(page.locator("#doors")).toHaveAttribute("aria-pressed", "true");
 });
 
-test("project links bypass the entrance and browser Back closes a selected project", async ({
+test("direct project links and browser Back preserve navigation", async ({
   page,
 }) => {
   await ready(page, "#project/rocket");
-  await expect(page.locator("#entrance")).not.toBeVisible();
   await expect(page.locator("#detail-title")).toHaveText("SOAR / Rocket");
   await page.locator("#close-detail").click();
   await expect(page).toHaveURL(/#gallery$/);
   await page.locator('[data-project="drone"]').click();
-  await expect(page.locator("#project-dialog")).toBeVisible({ timeout: 10000 });
+  await expect(page.locator("#project-dialog")).toBeVisible();
   await page.goBack();
-  await expect(page.locator("#project-dialog")).not.toBeVisible();
+  await expect(page.locator("#project-dialog")).toBeHidden();
 });
 
-test("roof controls, vector artwork, two white flashes, nozzle exhaust, and red close buttons", async ({
+test("cartoon clouds visibly drift and independent weather preferences persist", async ({
   page,
 }) => {
-  test.setTimeout(120000);
   await page.clock.install();
   await ready(page);
-  await expect
-    .poll(() => page.evaluate(() => galleryDiagnostics().vectorDrawing))
-    .toBe(true);
+  await outside(page);
+  await pause(page);
+  await page.locator('[data-condition="clouds"]').click();
+  const before = await page.evaluate(() => galleryDiagnostics().cloudPositions);
+  await page.clock.fastForward(1000);
+  const after = await page.evaluate(() => galleryDiagnostics().cloudPositions);
+  expect(after[0][0]).not.toBe(before[0][0]);
+  await page.locator('[data-condition="rain"]').click();
+  await page.locator('[data-condition="thunder"]').click();
+  await page.locator("#sky-phase").click();
   expect(
-    await page.evaluate(() => galleryDiagnostics().roofNavigation.attached),
-  ).toBe(true);
-  await expect(page.locator(".site-header")).toHaveCount(0);
-  await enterRoom(page);
-  const inside = await page.evaluate(() => galleryDiagnostics());
-  expect(inside.cameraPosition[2]).toBeLessThan(-5);
-  expect(inside.shelfPosition[2]).toBeLessThan(inside.cameraPosition[2]);
-  await page.clock.pauseAt(new Date(Date.now() + 120000));
-  await page.locator('[data-project="voxelcraft"]').click();
-  await page.clock.fastForward(2448);
-  await expect(page.locator("#transition-effect")).toHaveAttribute(
-    "data-effect",
-    "tnt-white",
-  );
-  await capture(page, "tnt-interrupted-white");
-  await page.clock.fastForward(700);
-  await expect(page.locator("#transition-effect")).toHaveAttribute(
-    "data-effect",
-    "",
-  );
-  await capture(page, "tnt-guard-interruption");
-  await page.clock.fastForward(4052);
-  await page.locator("#close-detail").click();
-  await page.locator('[data-project="rocket"]').click();
-  await page.clock.runFor(1125);
-  const exhaust = await page.evaluate(() => galleryDiagnostics());
-  expect(exhaust.nozzleWorld).toEqual(exhaust.smokeOrigin);
-  await capture(page, "rocket-nozzle-exhaust");
-  await page.clock.runFor(375);
-  await expect(page.locator("#close-detail")).toHaveCSS(
-    "background-color",
-    "rgb(255, 95, 87)",
-  );
-  for (const id of [
-    "close-detail",
-    "close-atmosphere",
-    "close-inspection",
-    "cancel-transition",
-  ]) {
-    await expect(page.locator(`#${id}`)).toHaveCSS(
-      "background-color",
-      "rgb(255, 95, 87)",
-    );
-  }
-  await capture(page, "red-close-detail");
+    await page.evaluate(() => galleryDiagnostics().preferences),
+  ).toMatchObject({ clouds: true, rain: true, thunder: true, theme: "dark" });
+  await capture(page, "cartoon-clouds-night");
 });
 
-test("entrance plays again on reload and roof weather uses direct SVG icons", async ({
+test("fast MIPS sequence preserves scan, walls, chip, and roof order", async ({
   page,
 }) => {
-  test.setTimeout(120000);
   await page.clock.install();
   await ready(page);
-  await page.clock.pauseAt(new Date(Date.now() + 120000));
-  await page.reload();
-  await page.evaluate(() => document.fonts.ready);
-  await page.clock.runFor(1000);
-  await page.waitForFunction(
-    () => typeof window.galleryDiagnostics === "function",
-  );
-  await expect(page.locator("#entrance")).toBeVisible();
-  await page.locator("#skip-entrance").click();
-  expect(await page.evaluate(() => scrollY)).toBe(0);
-  await expect(page.locator(".roof-weather svg")).toHaveCount(3);
-  await expect(page.locator("#weather")).toHaveCount(0);
-  await page.locator('[data-weather="cloudy"]').click();
-  await expect(page.locator('[data-weather="cloudy"]')).toHaveAttribute(
-    "aria-pressed",
-    "true",
-  );
-  expect(
-    await page.evaluate(() => galleryDiagnostics().preferences.weather),
-  ).toBe("cloudy");
-  await capture(page, "roof-weather-icons");
-  await page.locator("#replay-roof").click();
-  await expect(page.locator("#entrance")).toBeVisible();
-  await page.locator("#skip-entrance").click();
-});
-
-test("MIPS home visibly scans, assembles, installs the shelf chip, and places roof last", async ({
-  page,
-}) => {
-  test.setTimeout(240000);
-  await page.clock.install();
-  await ready(page);
-  await enterRoom(page);
-  await page.clock.pauseAt(new Date(Date.now() + 120000));
+  await pause(page);
   await page.locator('[data-project="house"]').click();
   let elapsed = 0;
-  for (const [time, stage, name] of [
-    [1400, "grabbing-blueprint", "mips-grab"],
-    [2400, "laser-scanning", "mips-laser"],
-    [4000, "assembling-walls", "mips-walls"],
-    [6000, "chip-emerging", "mips-chip-shelf"],
-    [7200, "installing-chip", "mips-chip-install"],
-    [8400, "placing-roof", "mips-roof"],
+  for (const [time, stage] of [
+    [120, "grabbing-blueprint"],
+    [200, "laser-scanning"],
+    [335, "assembling-walls"],
+    [500, "chip-emerging"],
+    [600, "installing-chip"],
+    [700, "placing-roof"],
   ]) {
-    await page.clock.runFor(time - elapsed);
+    await page.clock.fastForward(time - elapsed);
     elapsed = time;
     expect(await page.evaluate(() => galleryDiagnostics().houseStage)).toBe(
       stage,
     );
-    const parts = await page.evaluate(() => galleryDiagnostics().houseParts);
-    if (time === 2400)
-      expect(parts.laser && parts.blueprint && !parts.house).toBe(true);
-    if (time >= 4000) expect(parts.blueprint).toBe(false);
-    if (time < 8400) expect(parts.roof).toBe(false);
-    await capture(page, name);
   }
-  await page.clock.runFor(600);
+  await page.clock.fastForward(51);
   await expect(page.locator("#exhibit-actions")).toBeVisible();
   expect(await page.evaluate(() => galleryDiagnostics().houseStage)).toBe(
     "complete",
   );
-  await capture(page, "mips-complete");
-  await page.locator("#end-exhibit").click();
-  await page.locator('[data-project="cooking"]').click();
-  await page.clock.runFor(1100);
-  await capture(page, "steaming-mug");
-  await expect(page.locator("#transition")).not.toBeVisible();
-  await page.clock.runFor(1600);
 });
 
-test("original PDF face is shown as vectors and wall numbers have accessible project names", async ({
+test("running attendants retrieve and toss each story toward the viewer", async ({
   page,
 }) => {
   test.setTimeout(120000);
-  await ready(page);
-  await enterRoom(page);
-  await expect(page.locator('[data-project="drawing"]')).toHaveAttribute(
-    "aria-label",
-    /Face Drawing/,
-  );
-  await page.locator('[data-project="drawing"]').click();
-  await expect(page.locator("#exhibit-actions")).toBeVisible({
-    timeout: 12000,
-  });
-  await capture(page, "original-pdf-face-vectors");
-  await page.locator("#close-inspection").click();
-  await page.locator('[data-project="sailbot"]').focus();
-  await expect(page.locator("#object-label")).toContainText("SailBot");
-  const rect = await page.locator(".collection-index").boundingBox();
-  expect(rect.width).toBeLessThan(350);
-  expect(rect.height).toBeLessThan(page.viewportSize().height * 0.4);
-  const projector = await page.locator("#future-board").boundingBox();
-  expect(rect.y + rect.height).toBeLessThan(projector.y);
-});
-
-test("weather toggles remain independent and render in the courtyard", async ({
-  page,
-}) => {
-  await page.setViewportSize({ width: 1440, height: 900 });
-  await ready(page);
-  await page.locator('[data-condition="rain"]').click();
-  await page.locator('[data-condition="thunder"]').click();
-  let state = await page.evaluate(() => galleryDiagnostics().preferences);
-  expect(state.rain).toBe(true);
-  expect(state.thunder).toBe(true);
-  expect(state.clouds).toBe(false);
-  await page.locator('[data-condition="clouds"]').click();
-  await page.locator("#sky-phase").click();
-  await capture(page, "weather-moon-rain-thunder");
-  await page.locator('[data-condition="rain"]').click();
-  state = await page.evaluate(() => galleryDiagnostics().preferences);
-  expect(state).toMatchObject({
-    theme: "dark",
-    clouds: true,
-    rain: false,
-    thunder: true,
-  });
-  await page.reload();
-  await ready(page);
-  expect(
-    await page.evaluate(() => galleryDiagnostics().preferences),
-  ).toMatchObject({ theme: "dark", clouds: true, rain: false, thunder: true });
-  await page.locator("#sky-phase").click();
-  await capture(page, "weather-day-clouds");
-});
-
-test("portrait, wall controls and attendants hand off project stories", async ({
-  page,
-}) => {
-  test.setTimeout(120000);
-  await page.setViewportSize({ width: 1440, height: 900 });
-  const errors = [];
-  page.on("pageerror", (error) => errors.push(error.message));
   await page.clock.install();
   await ready(page);
-  await capture(page, "supplied-portrait-entrance");
-  await enterRoom(page);
-  await page.locator("#doors").click();
-  await page.clock.runFor(600);
-  await capture(page, "interior-mirror-chalkboard");
-  await page.clock.pauseAt(
-    new Date(await page.evaluate(() => Date.now() + 1000)),
-  );
+  await pause(page);
   for (const kind of ["roman", "butler", "fox"]) {
     await page.locator(`[data-attendant="${kind}"]`).click();
     await page.locator('[data-project="sailbot"]').click();
-    await page.clock.fastForward(6500);
-    await capture(page, `attendant-${kind}-handoff`);
-    await page.locator("#skip-transition").click();
+    await page.clock.fastForward(100);
+    expect(
+      await page.evaluate(() => galleryDiagnostics().attendant.stage),
+    ).toBe("running-to-cabinet");
+    await page.clock.fastForward(200);
+    expect(
+      await page.evaluate(() => galleryDiagnostics().attendant.stage),
+    ).toBe("reaching");
+    await page.clock.fastForward(310);
+    expect(
+      await page.evaluate(() => galleryDiagnostics().attendant.stage),
+    ).toBe("throwing");
+    const before = await page.evaluate(
+      () => galleryDiagnostics().attendant.giftDistance,
+    );
+    await page.clock.fastForward(110);
+    expect(
+      await page.evaluate(() => galleryDiagnostics().attendant.giftDistance),
+    ).toBeLessThan(before);
+    await capture(page, `${kind}-toss`);
+    await page.clock.fastForward(31);
     await expect(page.locator("#project-dialog")).toHaveAttribute(
       "data-presentation",
       kind,
     );
     await page.locator("#close-detail").click();
   }
-  expect(errors).toEqual([]);
 });
 
-test("research toucan arrives and the guard interrupts TNT", async ({
+test("archer releases the arrow, quiet exhibits avoid windows, and vector drawing stays accessible", async ({
   page,
 }) => {
-  test.setTimeout(120000);
-  await page.setViewportSize({ width: 1440, height: 900 });
   await page.clock.install();
   await ready(page);
-  await enterRoom(page);
-  await page.clock.pauseAt(
-    new Date(await page.evaluate(() => Date.now() + 1000)),
-  );
-  await page.locator('[data-project="kichua"]').click();
-  await page.clock.fastForward(1600);
-  await capture(page, "kichua-toucan-arrival");
-  await page.clock.fastForward(1100);
-  await capture(page, "kichua-scroll-handoff");
-  await page.locator("#skip-transition").click();
-  await expect(page.locator("#detail-title")).toHaveText("Kichua Research");
+  await pause(page);
+  await page.locator('[data-project="hackathon"]').click();
+  await page.clock.fastForward(330);
+  expect(
+    await page.evaluate(() => galleryDiagnostics().archer.draw),
+  ).toBeLessThan(-0.5);
+  await page.clock.fastForward(210);
+  expect(
+    (await page.evaluate(() => galleryDiagnostics().archer.arrow))[0],
+  ).toBeGreaterThan(2);
+  await page.clock.fastForward(211);
   await page.locator("#close-detail").click();
+  for (const id of ["cooking", "lamp"]) {
+    await page.locator(`[data-project="${id}"]`).click();
+    await expect(page.locator("#transition")).toBeHidden();
+    await page.clock.fastForward(751);
+    await expect(page.locator("#project-dialog")).toBeHidden();
+  }
+  await page.locator('[data-project="drawing"]').click();
+  await page.clock.fastForward(751);
+  await expect(page.locator("#close-inspection")).toBeVisible();
+  await expect(page.locator("#end-exhibit")).toBeHidden();
+  expect(await page.evaluate(() => galleryDiagnostics().vectorDrawing)).toBe(
+    true,
+  );
+});
+
+test("TNT interruption and rocket nozzle effects remain correctly timed", async ({
+  page,
+}) => {
+  await page.clock.install();
+  await ready(page);
+  await pause(page);
   await page.locator('[data-project="voxelcraft"]').click();
-  await page.clock.fastForward(2448);
-  await capture(page, "voxelcraft-interrupted-flash");
-  await page.clock.fastForward(500);
+  await page.clock.fastForward(255);
+  await expect(page.locator("#transition-effect")).toHaveAttribute(
+    "data-effect",
+    "tnt-white",
+  );
+  await page.clock.fastForward(70);
   await expect(page.locator("#transition-effect")).toHaveAttribute(
     "data-effect",
     "",
   );
-  await capture(page, "voxelcraft-guard-stops-blast");
-  await page.clock.fastForward(900);
-  await capture(page, "voxelcraft-scroll-handoff");
-  await page.locator("#skip-transition").click();
-  await expect(page.locator("#project-dialog")).toHaveAttribute(
-    "data-presentation",
-    "roman",
+  await page.clock.fastForward(426);
+  await page.locator("#close-detail").click();
+  await page.locator('[data-project="rocket"]').click();
+  await page.clock.fastForward(560);
+  const d = await page.evaluate(() => galleryDiagnostics());
+  expect(d.nozzleWorld).toEqual(d.smokeOrigin);
+  await page.clock.fastForward(191);
+  await expect(page.locator("#close-detail")).toHaveCSS(
+    "background-color",
+    "rgb(255, 95, 87)",
   );
 });

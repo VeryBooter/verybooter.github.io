@@ -17,7 +17,6 @@ test("mirror settles at idle and refreshes for doors, exhibits and daylight", as
       .click({ timeout: 1000 })
       .catch(() => {});
   await expect(page.locator("#entrance")).toBeHidden();
-  await page.locator("#enter-room").click();
   const settled = () =>
     page.waitForFunction(() => {
       const d = galleryDiagnostics();
@@ -80,7 +79,7 @@ test("mirror settles at idle and refreshes for doors, exhibits and daylight", as
   await settled();
   await page.screenshot({ path: "artifacts/browser/mirror-open.png" });
   let count = await page.evaluate(() => galleryDiagnostics().mirror.captures);
-  await page.locator("#leave-room").click();
+  await page.locator("#visit-courtyard").click();
   await expect
     .poll(() => page.evaluate(() => galleryDiagnostics().location))
     .toBe("courtyard");

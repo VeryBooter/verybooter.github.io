@@ -103,7 +103,7 @@ test("all twelve exhibits remain usable without WebGL and restore focus", async 
     assert.equal($("#detail-title").textContent, project.title);
     assert.equal(w.location.hash, `#project/${project.id}`);
     assert.equal($("#placeholder-label").hidden, false);
-    assert.equal($("#detail-links").children.length, 0);
+    assert.equal($("#detail-links").children.length, project.links.length);
     $("#project-dialog").dispatchEvent(
       new w.Event("cancel", { cancelable: true }),
     );

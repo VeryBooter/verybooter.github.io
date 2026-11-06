@@ -1,3 +1,4 @@
+import { spaces } from "./space-catalogue.js";
 import { mountProjector } from "./projector.js";
 import { projects, getProject, projectFromHash } from "./catalogue.js";
 import { GalleryController } from "./controller.js";
@@ -5,6 +6,7 @@ import { safeRead, safeWrite, readPreferences } from "./preferences.js";
 
 const $ = (selector) => document.querySelector(selector);
 mountProjector();
+const filmSource = new URL("../video/lens-dwellers.mp4", import.meta.url).href;
 let local, session;
 try {
   local = localStorage;
@@ -218,6 +220,11 @@ function renderDetail(project) {
 function openProject(id, { fromRoute = false, animate = true } = {}) {
   const project = getProject(id);
   if (!project) return;
+  if (scene?.space) scene.openSpace("cabinet");
+  $("#space-panel").hidden = true;
+  document.body.dataset.space = "gallery";
+  scene?.setView("cabinet", false);
+  document.body.dataset.roomView = "cabinet";
   finishEntrance();
   clearTimeout(actionTimer);
   $("#exhibit-actions").hidden = true;
@@ -252,6 +259,16 @@ function closeProject() {
     history.replaceState(null, "", "#gallery");
 }
 function applyRoute() {
+  const room = /^#room\/([a-z-]+)$/.exec(location.hash)?.[1];
+  if (room) {
+    visitSpace(room, true);
+    return;
+  }
+  if (scene?.space) {
+    scene.openSpace("cabinet");
+    $("#space-panel").hidden = true;
+    document.body.dataset.space = "gallery";
+  }
   const project = projectFromHash(location.hash);
   if (project) {
     openProject(project.id, { fromRoute: true, animate: false });
@@ -387,6 +404,31 @@ $("#doors").addEventListener("click", () => {
   cabinetOpen = !cabinetOpen;
   updateDoors();
 });
+function arriveInside() {
+  scene?.openSpace("cabinet");
+  $("#space-panel").hidden = true;
+  document.body.dataset.space = "gallery";
+  document.body.dataset.roomView = "cabinet";
+  document
+    .querySelectorAll("button[data-room-view]")
+    .forEach((button) =>
+      button.setAttribute(
+        "aria-pressed",
+        String(button.dataset.roomView === "cabinet"),
+      ),
+    );
+  gallery.scrollIntoView({ behavior: "instant", block: "start" });
+  scene?.snapInside();
+  scene?.setView("cabinet", false);
+  cabinetOpen = true;
+  updateDoors();
+  if (scene) {
+    scene.doorAngle = 1;
+    document.body.dataset.location = "interior";
+  }
+  controller.change("gallery");
+  $("#doors").focus({ preventScroll: true });
+}
 function enterGallery() {
   gallery.scrollIntoView({ behavior: "instant", block: "start" });
   updateScroll();
@@ -394,6 +436,158 @@ function enterGallery() {
   if (scene) document.body.dataset.location = "entering";
 }
 $("#enter-room").addEventListener("click", enterGallery);
+function changeRoomView(view) {
+  $("#film-video").pause();
+  scene?.openSpace("cabinet");
+  $("#space-panel").hidden = true;
+  document.body.dataset.space = "gallery";
+  if (controller.activeId) closeProject();
+  gallery.scrollIntoView({ behavior: "instant", block: "start" });
+  scene?.snapInside();
+  scene?.setView(view);
+  document.body.dataset.roomView = view;
+  document
+    .querySelectorAll("button[data-room-view]")
+    .forEach((button) =>
+      button.setAttribute(
+        "aria-pressed",
+        String(button.dataset.roomView === view),
+      ),
+    );
+  $("#map-location").textContent =
+    `You are at the ${view === "bulletin" ? "bulletin board" : view}.`;
+}
+for (const button of document.querySelectorAll("button[data-room-view]"))
+  button.addEventListener("click", () =>
+    changeRoomView(button.dataset.roomView),
+  );
+for (const link of document.querySelectorAll('a[href="#contact"]'))
+  link.addEventListener("click", (event) => {
+    event.preventDefault();
+    $("#visit-courtyard").click();
+  });
+$("#visit-courtyard").addEventListener("click", () => {
+  if (controller.activeId) closeProject();
+  $("#film-video").pause();
+  scene?.openSpace("cabinet");
+  $("#space-panel").hidden = true;
+  document.body.dataset.space = "gallery";
+  scene?.setView("cabinet", false);
+  $("#about").scrollIntoView({ behavior: "instant" });
+  scene?.setProgress(0);
+});
+$("#open-map").addEventListener("click", () => $("#house-map").showModal());
+$("#close-map").addEventListener("click", () => $("#house-map").close());
+let travelTimer;
+function visitSpace(id, fromRoute = false) {
+  if (!spaces.some((space) => space.id === id)) return;
+  clearTimeout(travelTimer);
+  if (controller.activeId) closeProject();
+  $("#house-map").close();
+  $("#film-video").pause();
+  if (!fromRoute)
+    history.pushState(null, "", id === "cabinet" ? "#gallery" : `#room/${id}`);
+  gallery.scrollIntoView({ behavior: "instant" });
+  scene?.openSpace(id);
+  document.body.dataset.space = id === "cabinet" ? "gallery" : id;
+  document.body.dataset.location = "interior";
+  $("#space-panel").hidden = id === "cabinet";
+  document
+    .querySelectorAll("button[data-room-view]")
+    .forEach((button) => button.setAttribute("aria-pressed", "false"));
+  const space = spaces.find((item) => item.id === id);
+  $("#space-title").textContent = space.title;
+  $("#space-note").textContent = space.note;
+  $("#map-location").textContent = `You are in ${space.title}.`;
+  $("#space-object-name").textContent = "Select an object to inspect it.";
+  $("#cinema-player").hidden = id !== "cinema";
+  if (id === "cinema" && !$("#film-video").getAttribute("src")) {
+    $("#film-video").src = filmSource;
+    $("#film-video").load();
+  }
+  $("#music-keys").hidden = id !== "music";
+  $("#enter-sailbot").hidden = id !== "benedum";
+  $("#space-links").replaceChildren();
+  if (id === "sailbot")
+    for (const link of getProject("sailbot").links) {
+      const a = document.createElement("a");
+      a.href = link.href;
+      a.textContent = link.label + " ↗";
+      $("#space-links").append(a);
+    }
+  $("#space-objects").replaceChildren();
+  scene?.spaceObjects().forEach((item, index) => {
+    const button = document.createElement("button");
+    button.textContent = item.userData.exhibitTitle;
+    button.addEventListener("click", () => scene.inspectSpaceObject(index));
+    $("#space-objects").append(button);
+  });
+  if (id === "cabinet") changeRoomView("cabinet");
+}
+function enterSailbot() {
+  scene?.approachBenedum();
+  travelTimer = setTimeout(
+    () => visitSpace("sailbot"),
+    preferences.motion ? 650 : 0,
+  );
+}
+$("#enter-sailbot").addEventListener("click", enterSailbot);
+for (const space of spaces) {
+  const button = document.createElement("button");
+  button.dataset.space = space.id;
+  button.dataset.zone = space.zone;
+  const title = document.createElement("strong");
+  title.textContent = space.title;
+  const note = document.createElement("small");
+  note.textContent = space.note;
+  button.append(title, note);
+  button.addEventListener("click", () => visitSpace(space.id));
+  $("#map-rooms").append(button);
+}
+$("#space-left").addEventListener("click", () => {
+  if (scene) scene.spaceAngle = Math.max(-0.6, scene.spaceAngle - 0.25);
+});
+$("#space-right").addEventListener("click", () => {
+  if (scene) scene.spaceAngle = Math.min(0.6, scene.spaceAngle + 0.25);
+});
+$("#play-film").addEventListener("click", () => {
+  const video = $("#film-video");
+  if (video.paused)
+    video.play().catch(() => {
+      $("#space-object-name").textContent =
+        "Playback could not start. Try the video controls.";
+    });
+  else video.pause();
+});
+for (const event of ["play", "pause", "ended"])
+  $("#film-video").addEventListener(event, () => {
+    $("#play-film").textContent = $("#film-video").paused
+      ? "Play film"
+      : "Pause film";
+  });
+let audioContext;
+for (const key of document.querySelectorAll("[data-note]"))
+  key.addEventListener("click", () => {
+    audioContext ||= new AudioContext();
+    audioContext.resume();
+    const oscillator = audioContext.createOscillator(),
+      gain = audioContext.createGain();
+    oscillator.type = "triangle";
+    oscillator.frequency.value = Number(key.dataset.note);
+    gain.gain.setValueAtTime(0.0001, audioContext.currentTime);
+    gain.gain.exponentialRampToValueAtTime(
+      0.12,
+      audioContext.currentTime + 0.02,
+    );
+    gain.gain.exponentialRampToValueAtTime(
+      0.0001,
+      audioContext.currentTime + 0.5,
+    );
+    oscillator.connect(gain).connect(audioContext.destination);
+    oscillator.start();
+    oscillator.stop(audioContext.currentTime + 0.52);
+  });
+
 for (const link of document.querySelectorAll('a[href="#gallery"]'))
   link.addEventListener("click", (event) => {
     event.preventDefault();
@@ -428,6 +622,7 @@ window.addEventListener("resize", () => {
 });
 function setEntranceInert(inert) {
   for (const target of [
+    $("#room-navigation"),
     $("#roof-controls"),
     $("#enter-room"),
     $("#atmosphere"),
@@ -437,6 +632,7 @@ function setEntranceInert(inert) {
     target.inert = inert;
 }
 function finishEntrance() {
+  const wasPlaying = controller.state === "entrance";
   clearTimeout(entranceTimer);
   clearTimeout(entranceHideTimer);
   const restoreFocus = entrance.contains(document.activeElement);
@@ -445,7 +641,8 @@ function finishEntrance() {
   setEntranceInert(false);
   safeWrite(session, "gallery.entered", "yes");
   if (controller.state === "entrance") controller.change("introduction");
-  if (restoreFocus) $("#roof-about").focus({ preventScroll: true });
+  if (wasPlaying) arriveInside();
+  else if (restoreFocus) $("#roof-about").focus({ preventScroll: true });
 }
 function playEntrance() {
   if (!preferences.motion) return;
@@ -463,14 +660,10 @@ function playEntrance() {
     animation.play();
   }
   $("#skip-entrance").focus({ preventScroll: true });
-  entranceTimer = setTimeout(() => {
-    entrance.classList.add("leaving");
-    entranceHideTimer = setTimeout(finishEntrance, 500);
-  }, 3200);
+  entranceTimer = setTimeout(finishEntrance, 450);
 }
 $("#skip-entrance").addEventListener("click", () => {
   finishEntrance();
-  $("#roof-about").focus({ preventScroll: true });
 });
 $("#replay").addEventListener("click", () => {
   $("#atmosphere").classList.remove("open");
@@ -493,6 +686,9 @@ $("#collection-range").textContent = `01 — ${projects.length}`;
 applyPreferences();
 $("#year").textContent = new Date().getFullYear();
 document.body.dataset.location = "courtyard";
+const initialRoom = spaces.find(
+  (space) => `#room/${space.id}` === location.hash,
+)?.id;
 const initialProject = projectFromHash(location.hash);
 if (initialProject)
   openProject(initialProject.id, { fromRoute: true, animate: false });
@@ -501,6 +697,13 @@ try {
   const { GalleryScene } = await import("./scene.js");
   scene = new GalleryScene($("#scene"), projects, {
     onSelect: (id) => openProject(id),
+    onVisitSpace: (id) =>
+      scene?.space === "benedum" && id === "sailbot"
+        ? enterSailbot()
+        : visitSpace(id),
+    onSpaceObject: (name) => {
+      $("#space-object-name").textContent = name;
+    },
     onHover: showLabel,
     onFailure: handleFailure,
     onGameButton: pressGameButton,
@@ -530,14 +733,15 @@ try {
   handleFailure();
 }
 // Start only after the renderer/import has finished, so setup cannot consume the opening.
-if (!initialProject && preferences.motion) {
+if (initialRoom) visitSpace(initialRoom, true);
+if (!initialProject && !initialRoom && preferences.motion) {
   await document.fonts?.ready;
   // Let shader compilation and the first canvas paint finish before starting the clock.
   await new Promise((resolve) =>
     window.requestAnimationFrame(() => window.requestAnimationFrame(resolve)),
   );
   playEntrance();
-}
+} else if (!initialProject && !initialRoom) arriveInside();
 $("#replay-roof").addEventListener("click", () => $("#replay").click());
 document.addEventListener("visibilitychange", () => {
   if (document.hidden) scene?.pause();
@@ -545,6 +749,21 @@ document.addEventListener("visibilitychange", () => {
 });
 // A small read-only diagnostics surface supports repeatable runtime QA.
 window.galleryDiagnostics = () => ({
+  entranceDuration: 450,
+  exhibitDuration: Math.max(...projects.map((project) => project.duration)),
+  cloudPositions:
+    scene?.clouds.children.map((cloud) => cloud.position.toArray()) || [],
+  portraitPosition: scene?.room.userData.portrait.position.toArray(),
+  projectionPosition: scene?.futureBoard.position.toArray(),
+  cinemaScreenVideo: !!scene?.spaceRoots
+    .get("cinema")
+    ?.getObjectByName("cinema-screen")?.material.map?.isVideoTexture,
+  space: scene?.space || "gallery",
+  spaceObjects:
+    scene
+      ?.spaceObjects()
+      .map((item) => ({ name: item.name, open: !!item.userData.open })) || [],
+  view: scene?.view || "cabinet",
   state: controller.state,
   activeId: controller.activeId,
   webgl: !!scene && !fallback,
@@ -568,6 +787,9 @@ window.galleryDiagnostics = () => ({
         stage: scene.attendant.userData.stage,
         position: scene.attendant.position.toArray(),
         giftVisible: scene.attendant.userData.gift.visible,
+        giftDistance: scene.attendant.userData.gift
+          .getWorldPosition(scene.camera.position.clone())
+          .distanceTo(scene.camera.position),
         knees: scene.attendant.userData.legs.map((leg) => leg.knee.rotation.x),
         elbows: scene.attendant.userData.elbows.map(
           (elbow) => elbow.rotation.x,

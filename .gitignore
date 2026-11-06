@@ -2,3 +2,6 @@ node_modules/
 dist/
 .DS_Store
 artifacts/
+
+# Preserve the supplied 4K master locally; publish the browser MP4.
+docs/assets/video/*.mov

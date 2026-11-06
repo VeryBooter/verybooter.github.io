@@ -23,8 +23,9 @@
     </div>
     <div class="grain" aria-hidden="true"></div>
     <div id="architectural-ui" aria-label="Building controls"></div>
+    <div id="pediment-name"><span>Kevin</span><span>Li</span></div>
     <div id="roof-controls" class="roof-controls">
-      <span class="roof-name">KEVIN LI</span>
+      <span class="roof-name" aria-hidden="true"></span>
       <div class="roof-weather" role="group" aria-label="Weather">
         <button
           id="sky-phase"
@@ -253,18 +254,16 @@
         class="contact section"
         aria-labelledby="contact-title"
       >
-        <div>
-          <p class="eyebrow">02 — KEEP IN TOUCH</p>
-          <h2 id="contact-title">
-            Good things start<br />with a <em>conversation.</em>
-          </h2>
-          <p>
-            A question, a shared interest, or an idea to build together.<br />There’s
-            always room for something new.
-          </p>
-          <a class="primary-link" href="https://github.com/VeryBooter"
-            >Find me on GitHub <span aria-hidden="true">↗</span></a
+        <div class="contact-road-sign">
+          <p class="eyebrow">FIND KEVIN</p>
+          <h2 id="contact-title">Say hello.</h2>
+          <a href="https://www.linkedin.com/in/kevin-l-22105329b/"
+            >LinkedIn <span>↗</span></a
           >
+          <a href="https://github.com/VeryBooter"
+            >GitHub · VeryBooter <span>↗</span></a
+          >
+          <a href="mailto:yul424@pitt.edu">yul424@pitt.edu <span>↗</span></a>
         </div>
 
         <footer>
@@ -378,7 +377,7 @@
           aria-label="Kevin Li's theta logo"
           role="img"
         >
-          <path class="logo-top" d="M32 -10V3M11 29a21 21 0 0 1 42 0" />
+          <path class="logo-top" d="M32 -10V8M11 29a21 21 0 0 1 42 0" />
           <path class="logo-bottom" d="M11 37a21 21 0 0 0 42 0" />
           <circle class="logo-centre" pathLength="1" cx="32" cy="32" r="8" />
           <path class="logo-diameter" pathLength="1" d="M24 32h16" />
@@ -391,6 +390,63 @@
       </div>
       <button id="skip-entrance">Skip entrance →</button>
     </div>
+    <nav id="room-navigation" aria-label="Explore the house">
+      <button data-room-view="cabinet" aria-pressed="true">Cabinet</button>
+      <button data-room-view="presentation" aria-pressed="false">
+        Presentation ↻
+      </button>
+      <button data-room-view="bulletin" aria-pressed="false">
+        Bulletin board
+      </button>
+      <button id="open-map">House map</button>
+      <button id="visit-courtyard">Outside</button>
+    </nav>
+    <aside id="space-panel" hidden>
+      <p class="eyebrow">EXPLORE THE HOUSE</p>
+      <h2 id="space-title"></h2>
+      <p id="space-note"></p>
+      <div class="space-turn">
+        <button id="space-left" aria-label="Look left">←</button
+        ><span>Look around</span
+        ><button id="space-right" aria-label="Look right">→</button>
+      </div>
+      <button id="enter-sailbot" hidden>Enter Benedum → SailBot room</button>
+      <div id="space-links"></div>
+      <details>
+        <summary>Objects in this room</summary>
+        <div id="space-objects"></div>
+      </details>
+      <p id="space-object-name" role="status">
+        Select an object to inspect it.
+      </p>
+      <div id="cinema-player" hidden>
+        <p>Lens Dwellers · Pitt 24 Hr Film Challenge</p>
+        <button id="play-film">Play film</button>
+        <video
+          id="film-video"
+          controls
+          playsinline
+          preload="none"
+          aria-label="Lens Dwellers film"
+        ></video>
+      </div>
+      <div id="music-keys" hidden aria-label="Try the keyboard">
+        <button data-note="261.63">C</button
+        ><button data-note="293.66">D</button
+        ><button data-note="329.63">E</button
+        ><button data-note="349.23">F</button><button data-note="392">G</button
+        ><button data-note="440">A</button><button data-note="493.88">B</button>
+      </div>
+    </aside>
+    <dialog id="house-map" aria-labelledby="map-title">
+      <button id="close-map" class="close-button" aria-label="Close house map">
+        ×
+      </button>
+      <p class="eyebrow">A HOUSE OF CURIOSITIES</p>
+      <h2 id="map-title">Find your way.</h2>
+      <p id="map-location" aria-live="polite">You are in the gallery.</p>
+      <div id="map-rooms" class="map-rooms"></div>
+    </dialog>
     <noscript
       ><div class="noscript">
         This interactive collection uses JavaScript. You can still read the

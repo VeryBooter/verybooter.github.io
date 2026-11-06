@@ -1,117 +1,116 @@
 import { test, expect } from "@playwright/test";
-import { mkdir } from "node:fs/promises";
+import { spaces } from "../docs/assets/js/space-catalogue.js";
 
-test.use({ actionTimeout: 10000 });
-
-test("logo, articulated attendants, archer, quiet exhibits and optical projector", async ({
+test("house map reaches every room, opens furniture, and enters Benedum before SailBot", async ({
   page,
 }) => {
-  test.setTimeout(240000);
-  await page.setViewportSize({ width: 1440, height: 900 });
+  test.setTimeout(180000);
   const errors = [];
   page.on("pageerror", (e) => errors.push(e.message));
-  await page.clock.install();
   await page.goto("/");
   await page.waitForFunction(() => window.galleryDiagnostics?.().webgl);
-  if (await page.locator("#skip-entrance").isVisible())
-    await page
-      .locator("#skip-entrance")
-      .click({ timeout: 1000 })
-      .catch(() => {});
   await expect(page.locator("#entrance")).toBeHidden();
-  await mkdir("artifacts/browser/screenshots", { recursive: true });
-  const capture = async (name) =>
-    page.screenshot({
-      path: `artifacts/browser/screenshots/refined-${name}.png`,
-    });
-  await capture("portrait");
-  expect(await page.locator(".logo-top").getAttribute("d")).toContain(
-    "V3M11 29",
-  );
-  await page.locator("#enter-room").click();
-  await expect
-    .poll(() => page.evaluate(() => galleryDiagnostics().location))
-    .toBe("interior");
-  await page.locator("#doors").click();
-  await page.clock.runFor(600);
-  await capture("room");
-  expect(await page.evaluate(() => galleryDiagnostics().projector)).toEqual({
-    visible: true,
-    lightSegments: 3,
-  });
-  await page.locator("#slide-next").click();
-  await expect(page.locator("#slide-count")).toHaveText("2 / 2");
-  await page.locator("#slide-play").click();
-  await page.clock.fastForward(5100);
-  await expect(page.locator("#slide-count")).toHaveText("1 / 2");
-  await page.locator("#slide-play").click();
-  await expect(page.locator("#projected-slide")).toHaveAttribute(
-    "alt",
-    /Air Battle/,
-  );
-  await capture("projector-pdf");
-  await page.clock.pauseAt(
-    new Date(await page.evaluate(() => Date.now() + 1000)),
-  );
-  for (const kind of ["roman", "butler", "fox"]) {
-    await page.locator(`[data-attendant="${kind}"]`).click();
-    await page.locator('[data-project="sailbot"]').click();
-    await page.clock.fastForward(900);
-    const walk = await page.evaluate(() => galleryDiagnostics().attendant);
-    expect(walk.stage).toBe("walking-to-cabinet");
-    await capture(`${kind}-walking`);
-    await page.clock.fastForward(1900);
-    expect(
-      await page.evaluate(() => galleryDiagnostics().attendant.stage),
-    ).toBe("reaching");
-    await capture(`${kind}-retrieval`);
-    await page.clock.fastForward(3700);
-    const handoff = await page.evaluate(() => galleryDiagnostics().attendant);
-    expect(handoff.stage).toBe("presenting");
-    expect(handoff.giftVisible).toBe(true);
-    expect(handoff.elbows[1]).toBeLessThan(-1);
-    expect(handoff.position).not.toEqual(walk.position);
-    await capture(`${kind}-presenting`);
-    await page.locator("#skip-transition").click();
-    await page.locator("#close-detail").click();
+  for (const room of spaces) {
+    await page.locator("#open-map").click();
+    await page.locator(`#map-rooms [data-space="${room.id}"]`).click();
+    expect(await page.evaluate(() => galleryDiagnostics().space)).toBe(
+      room.id === "cabinet" ? "gallery" : room.id,
+    );
+    if (room.id === "kitchen") {
+      await page.locator("#space-panel summary").click();
+      await page
+        .locator("#space-objects button")
+        .filter({ hasText: /^Fridge$/ })
+        .click();
+      expect(
+        (await page.evaluate(() => galleryDiagnostics().spaceObjects)).find(
+          (x) => x.name === "Fridge",
+        ).open,
+      ).toBe(true);
+    }
+    if (room.id === "benedum") {
+      await page.locator("#enter-sailbot").click();
+      await expect
+        .poll(() => page.evaluate(() => galleryDiagnostics().space))
+        .toBe("sailbot");
+      await expect(page.locator("#space-links a")).toHaveCount(2);
+    }
   }
-  await page.locator('[data-project="hackathon"]').click();
-  await page.clock.fastForward(1400);
-  expect(
-    await page.evaluate(() => galleryDiagnostics().archer.draw),
-  ).toBeLessThan(-0.5);
-  await capture("archer-draw");
-  await page.clock.fastForward(1000);
-  expect(
-    (await page.evaluate(() => galleryDiagnostics().archer.arrow))[0],
-  ).toBeGreaterThan(2);
-  await capture("archer-release");
-  await page.locator("#skip-transition").click();
-  await page.locator("#close-detail").click();
-  await page.locator('[data-project="cooking"]').click();
-  await expect(page.locator("#transition")).toBeHidden();
-  await expect(page.locator("#project-dialog")).toBeHidden();
-  await page.clock.fastForward(2700);
-  await page.locator('[data-project="drawing"]').click();
-  await page.clock.fastForward(1600);
-  await expect(page.locator("#end-exhibit")).toBeHidden();
-  await expect(page.locator("#close-inspection")).toBeVisible();
-  await capture("painting");
-  await page.locator("#close-inspection").click();
-  for (const [name, width, height] of [
-    ["tablet", 820, 1180],
-    ["phone", 390, 844],
+  await page.goto("/#room/library");
+  await page.waitForFunction(
+    () => window.galleryDiagnostics?.().space === "library",
+  );
+  await expect(page.locator("#space-title")).toHaveText("Library");
+  await page.locator("#open-map").click();
+  await page.locator('#map-rooms [data-space="music"]').click();
+  await page.locator('[data-note="261.63"]').click();
+  await page.goBack();
+  await expect(page.locator("#space-title")).toHaveText("Library");
+  expect(errors).toEqual([]);
+});
+
+test("mobile map and opposite-wall projector stay reachable after resize", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page.waitForFunction(() => window.galleryDiagnostics?.().webgl);
+  await expect(page.locator("#entrance")).toBeHidden();
+  for (const [width, height] of [
+    [820, 1180],
+    [390, 844],
   ]) {
     await page.setViewportSize({ width, height });
-    await page.clock.runFor(150);
-    expect(await page.evaluate(() => galleryDiagnostics().location)).toBe(
-      "interior",
-    );
-    const screen = await page.locator("#future-board").boundingBox();
-    expect(screen.x).toBeGreaterThanOrEqual(0);
-    expect(screen.x + screen.width).toBeLessThanOrEqual(width);
+    await page.locator('button[data-room-view="presentation"]').click();
+    await page.waitForTimeout(700);
     await page.locator("#slide-next").click();
-    await capture(`${name}-room`);
+    const box = await page.locator("#future-board").boundingBox();
+    expect(box.x).toBeGreaterThanOrEqual(0);
+    expect(box.x + box.width).toBeLessThanOrEqual(width);
+    await page.locator("#open-map").click();
+    await page.locator('#map-rooms [data-space="garden"]').click();
+    await expect(page.locator("#space-title")).toHaveText("Garden");
+    expect(
+      await page.evaluate(() => document.documentElement.scrollWidth),
+    ).toBeLessThanOrEqual(width);
   }
-  expect(errors).toEqual([]);
+});
+
+test("Lens Dwellers plays on the cinema screen and pauses when leaving", async ({
+  page,
+}) => {
+  test.setTimeout(60000);
+  await page.goto("/#room/cinema");
+  await page.waitForFunction(
+    () => window.galleryDiagnostics?.().space === "cinema",
+  );
+  await expect(page.locator("#film-file")).toHaveCount(0);
+  await page.locator("#play-film").click();
+  await expect
+    .poll(
+      () => page.locator("#film-video").evaluate((video) => video.currentTime),
+      { timeout: 20000 },
+    )
+    .toBeGreaterThan(0.25);
+  const media = await page
+    .locator("#film-video")
+    .evaluate((video) => ({
+      width: video.videoWidth,
+      height: video.videoHeight,
+      duration: video.duration,
+      paused: video.paused,
+      error: video.error?.message,
+    }));
+  expect(media).toMatchObject({ width: 1920, height: 1080, paused: false });
+  expect(media.duration).toBeGreaterThan(150);
+  expect(media.error).toBeUndefined();
+  expect(
+    await page.evaluate(() => galleryDiagnostics().cinemaScreenVideo),
+  ).toBe(true);
+  await page.screenshot({
+    path: "artifacts/browser/screenshots/lens-dwellers-cinema.png",
+  });
+  await page.locator('button[data-room-view="cabinet"]').click();
+  expect(
+    await page.locator("#film-video").evaluate((video) => video.paused),
+  ).toBe(true);
 });

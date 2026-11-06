@@ -1,3 +1,6 @@
+import { buildSpace, animateSpace } from "./spaces.js";
+import { roomViewPose } from "./room-views.js";
+import { buildCartoonClouds, animateClouds } from "./weather.js";
 import {
   buildAttendant,
   poseAttendant,
@@ -32,6 +35,8 @@ export class GalleryScene {
       onEnterRoom,
       onToggleCabinet,
       onLocationChange,
+      onVisitSpace,
+      onSpaceObject,
     } = {},
   ) {
     this.canvas = canvas;
@@ -43,6 +48,12 @@ export class GalleryScene {
     this.onGameButton = onGameButton;
     this.onLocationChange = onLocationChange;
     this.onEnterRoom = onEnterRoom;
+    this.spaceRoots = new Map();
+    this.space = null;
+    this.spaceAngle = 0;
+    this.onVisitSpace = onVisitSpace;
+    this.onSpaceObject = onSpaceObject;
+    this.view = "cabinet";
     this.entryProgress = 0;
     this.entryTarget = 0;
     this.entranceAngle = 0;
@@ -131,6 +142,12 @@ export class GalleryScene {
     this.roofControls = new CSS3DObject(
       document.querySelector("#roof-controls"),
     );
+    this.pedimentName = new CSS3DObject(
+      document.querySelector("#pediment-name"),
+    );
+    this.pedimentName.position.set(0, 10.35, -3.2);
+    this.pedimentName.scale.setScalar(0.012);
+    this.scene.add(this.pedimentName);
     this.roofControls.name = "navigation-on-rectangular-roof";
     this.roofControls.position.set(0, 9, -2.48);
     this.roofControls.scale.setScalar(0.02);
@@ -143,6 +160,18 @@ export class GalleryScene {
     this.wallIndex.scale.setScalar(0.018);
     this.wallIndex.element.dataset.wallMounted = "true";
     this.scene.add(this.wallIndex);
+    this.wallHeading = new CSS3DObject(
+      document.querySelector(".gallery-heading"),
+    );
+    this.wallHeading.position.set(-10.6, 8.25, -32.65);
+    this.wallHeading.scale.setScalar(0.011);
+    this.scene.add(this.wallHeading);
+    this.roadSign = new CSS3DObject(
+      document.querySelector(".contact-road-sign"),
+    );
+    this.roadSign.position.set(-7.7, 3.4, -0.8);
+    this.roadSign.scale.setScalar(0.012);
+    this.scene.add(this.roadSign);
     this.futureBoard = new CSS3DObject(document.querySelector("#future-board"));
     this.futureBoard.position.set(8.4, 0.3, -32.65);
     this.futureBoard.scale.setScalar(0.014);
@@ -173,32 +202,7 @@ export class GalleryScene {
     this.sky = buildDaylight(this.scene, this.sun);
     this.fill.position.set(9, 7, -1);
     this.scene.add(this.fill);
-    this.clouds = new T.Group();
-    this.scene.add(this.clouds);
-    const cloudMat = new T.ShaderMaterial({
-      transparent: true,
-      depthWrite: false,
-      side: T.DoubleSide,
-      uniforms: { shade: { value: new T.Color("#d1d5da") } },
-      vertexShader: `varying vec2 vUv; void main(){ vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.); }`,
-      fragmentShader: `varying vec2 vUv; uniform vec3 shade;
-        float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
-        float noise(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(hash(i),hash(i+vec2(1,0)),f.x),mix(hash(i+vec2(0,1)),hash(i+vec2(1,1)),f.x),f.y);}
-        void main(){vec2 p=vUv*vec2(9.,5.);float n=0.,amp=.5;for(int i=0;i<5;i++){n+=amp*noise(p);p=p*2.03+3.7;amp*=.5;}
-        float edge=1.-smoothstep(.23,.51,length((vUv-.5)*vec2(.85,1.1)));
-        float density=smoothstep(.23,.67,n)*edge;
-        gl_FragColor=vec4(shade*mix(.62,1.12,vUv.y)*(.85+.25*n),density*.88);}`,
-    });
-    for (let i = 0; i < 12; i++) {
-      const cloud = new T.Mesh(new T.PlaneGeometry(24, 12), cloudMat);
-      cloud.position.set(
-        (i % 4) * 21 - 32,
-        20 + Math.sin(i * 2) * 3,
-        -24 - Math.floor(i / 4) * 16,
-      );
-      cloud.rotation.z = Math.sin(i) * 0.12;
-      this.clouds.add(cloud);
-    }
+    this.clouds = buildCartoonClouds(this.scene);
     const rainPoints = [];
     for (let i = 0; i < 650; i++) {
       const x = (Math.sin(i * 73.7) * 0.5 + 0.5) * 35 - 17;
@@ -251,24 +255,17 @@ export class GalleryScene {
         this.mobile ? 1024 : 2048,
       );
       this.wallIndex.position.set(
-        this.mobile ? 0.3 : 8.4,
-        this.mobile ? 7.8 : 5.8,
+        this.mobile ? 0 : -10.6,
+        this.mobile ? 8 : 3.2,
         -32.65,
       );
-      this.wallIndex.scale.setScalar(this.mobile ? 0.015 : 0.018);
-      this.futureBoard.position.set(
-        this.mobile ? -6.6 : 8.4,
-        this.mobile ? 7.8 : 1.4,
-        -32.55,
-      );
-      this.projector.userData.aim(this.futureBoard.position, this.mobile);
-      this.mirror.userData.frame.position.set(
-        this.mobile ? -8.5 : 3.3,
-        this.mobile ? 4.9 : 6.9,
-        -31.5,
-      );
-      this.mirror.userData.frame.scale.setScalar(this.mobile ? 0.6 : 1);
-      this.futureBoard.scale.setScalar(0.009);
+      this.wallIndex.scale.setScalar(this.mobile ? 0.018 : 0.011);
+      this.futureBoard.position.set(6.8, 4.8, -5.5);
+      this.futureBoard.rotation.y = Math.PI;
+      this.futureBoard.scale.setScalar(innerWidth < 600 ? 0.006 : 0.012);
+      this.projector.userData.aim(this.futureBoard.position, false);
+      this.mirror.userData.frame.position.set(3.3, 7.4, -31.5);
+      this.mirror.userData.frame.scale.setScalar(0.65);
       this.mirror.userData.invalidate("resize", true);
       this.renderer.setSize(innerWidth, innerHeight, false);
       this.uiRenderer.setSize(innerWidth, innerHeight);
@@ -285,6 +282,7 @@ export class GalleryScene {
         ? 10.05
         : 9.55;
       this.room.userData.logo.position.y = this.mobile ? 10.85 : 10.35;
+      this.pedimentName.position.y = this.room.userData.logo.position.y;
       this.camera.aspect = innerWidth / innerHeight;
       this.camera.fov = this.mobile ? 42 : 38;
       this.camera.updateProjectionMatrix();
@@ -332,6 +330,29 @@ export class GalleryScene {
         ) > 12
       )
         return;
+      if (this.space) {
+        const rect = this.canvas.getBoundingClientRect();
+        this.raycaster.setFromCamera(
+          new T.Vector2(
+            ((e.clientX - rect.left) / rect.width) * 2 - 1,
+            (-(e.clientY - rect.top) / rect.height) * 2 + 1,
+          ),
+          this.camera,
+        );
+        let hit = this.raycaster.intersectObject(
+          this.spaceRoots.get(this.space),
+          true,
+        )[0]?.object;
+        while (hit && !hit.userData.destination && !hit.userData.exhibitTitle)
+          hit = hit.parent;
+        if (hit?.userData.destination)
+          this.onVisitSpace?.(hit.userData.destination);
+        else if (hit) {
+          hit.userData.action?.();
+          this.onSpaceObject?.(hit.userData.exhibitTitle);
+        }
+        return;
+      }
       const id = this.pick(e);
       if (id === "cabinet-knob") onToggleCabinet?.();
       else if (id) onSelect?.(id);
@@ -376,6 +397,64 @@ export class GalleryScene {
     this.fill.intensity = dark ? 0.5 : 1;
     updateDaylight(this);
   }
+  openSpace(id) {
+    this.reset();
+    this.space = id === "cabinet" ? null : id;
+    if (this.space && !this.spaceRoots.has(id)) {
+      const root = buildSpace(id);
+      if (id === "cinema") {
+        const video = document.querySelector("#film-video");
+        const texture = new T.VideoTexture(video);
+        texture.colorSpace = T.SRGBColorSpace;
+        const screen = root.getObjectByName("cinema-screen");
+        screen.material.map = texture;
+        screen.material.needsUpdate = true;
+      }
+      this.spaceRoots.set(id, root);
+      this.scene.add(root);
+    }
+    for (const [key, root] of this.spaceRoots)
+      root.visible = key === this.space;
+    this.spaceAngle = 0;
+    this.viewTransition = null;
+    this.spaceApproach = null;
+    this.snapInside();
+    if (!this.space) this.mirror.userData.invalidate("return-to-gallery");
+  }
+  spaceObjects() {
+    const result = [];
+    this.spaceRoots.get(this.space)?.traverse((item) => {
+      if (item.userData.exhibitTitle) result.push(item);
+    });
+    return result;
+  }
+  inspectSpaceObject(index) {
+    const item = this.spaceObjects()[index];
+    item?.userData.action?.();
+    if (item) this.onSpaceObject?.(item.userData.exhibitTitle);
+  }
+  approachBenedum() {
+    const door = this.spaceRoots
+      .get("benedum")
+      ?.getObjectByName("campus-entry");
+    if (door) door.rotation.y = Math.PI / 2;
+    this.spaceApproach = {
+      start: performance.now(),
+      position: this.camera.position.clone(),
+    };
+  }
+  setView(view, animate = true) {
+    this.view = view;
+    this.viewTransition =
+      animate && this.preferences.motion
+        ? {
+            start: performance.now(),
+            position: this.camera.position.clone(),
+            quaternion: this.camera.quaternion.clone(),
+            fov: this.camera.fov,
+          }
+        : null;
+  }
   setProgress(value) {
     this.progress = T.MathUtils.clamp(value, 0, 1);
     this.entryTarget = this.progress > 0.4 ? 1 : 0;
@@ -402,7 +481,8 @@ export class GalleryScene {
     this.open = open;
   }
   pick(event) {
-    if (this.entryProgress < 0.95) return null;
+    if (this.entryProgress < 0.95 || this.space || this.view !== "cabinet")
+      return null;
     const rect = this.canvas.getBoundingClientRect();
     this.raycaster.setFromCamera(
       new T.Vector2(
@@ -426,7 +506,7 @@ export class GalleryScene {
       ? "cabinet-knob"
       : hit?.userData.projectId || null;
   }
-  select(id, motion = true, duration = 1500) {
+  select(id, motion = true, duration = 750) {
     this.reset();
     if (!["lamp", "satellite", "drawing"].includes(id)) this.open = true;
     this.active = { id, start: performance.now(), motion, duration };
@@ -543,11 +623,7 @@ export class GalleryScene {
       item = this.collection.exhibits.get(id);
     if (!item) return;
     const p = motion
-        ? T.MathUtils.clamp(
-            (now - start) / (this.active.duration || 1500),
-            0,
-            1,
-          )
+        ? T.MathUtils.clamp((now - start) / (this.active.duration || 750), 0, 1)
         : 1,
       a = ease(Math.min(1, p * 1.7));
     const parts = item.userData.parts,
@@ -620,6 +696,11 @@ export class GalleryScene {
         ),
         reachWeight,
       );
+      if (p > 0.65) {
+        const release = smooth(p, 0.68, 0.84);
+        actor.userData.arms[1].rotation.x = -0.4 - release * 1.1;
+        actor.userData.elbows[1].rotation.x = -1.2 + release;
+      }
       actor.updateWorldMatrix(true, true);
       const hand = this.collection.cabinet.worldToLocal(
         actor.userData.hand.getWorldPosition(new T.Vector3()),
@@ -652,6 +733,21 @@ export class GalleryScene {
           strength:
             p > 0.28 && p < 0.4 ? Math.sin(((p - 0.28) / 0.12) * Math.PI) : 0,
         });
+      }
+      if (p >= 0.76) {
+        const flight = smooth(p, 0.76, 1);
+        const gift = actor.userData.gift;
+        const destination = this.camera.position.clone();
+        const towardViewer = destination
+          .clone()
+          .sub(hand.clone().applyMatrix4(this.collection.cabinet.matrixWorld))
+          .normalize();
+        destination.addScaledVector(towardViewer, -2.8);
+        const localDestination = actor.userData.hand.worldToLocal(destination);
+        gift.position.copy(localDestination).multiplyScalar(flight);
+        gift.position.y += Math.sin(flight * Math.PI) * 1.1;
+        gift.rotation.x += Math.sin(flight * Math.PI) * 0.7;
+        actor.userData.stage = flight < 1 ? "throwing" : "caught";
       }
       return;
     }
@@ -830,7 +926,7 @@ export class GalleryScene {
     }
     const mobile = this.mobile;
     // Camera travel follows elapsed time, including on slower software-rendered devices.
-    const travel = this.preferences.motion ? Math.max(0, elapsed) / 2000 : 1;
+    const travel = this.preferences.motion ? Math.max(0, elapsed) / 650 : 1;
     this.entryProgress =
       this.entryTarget === 1
         ? Math.min(1, this.entryProgress + travel)
@@ -859,29 +955,133 @@ export class GalleryScene {
         (hinge.rotation.y = -sign * this.entranceAngle * 1.65),
     );
     this.roofControls.visible = this.entryProgress < 0.55;
-    this.wallIndex.visible = this.entryProgress > 0.99;
-    this.futureBoard.visible = this.entryProgress > 0.99;
+    this.pedimentName.visible = this.roofControls.visible;
+    this.wallIndex.visible =
+      this.entryProgress > 0.99 && this.view === "cabinet";
+    this.wallHeading.visible = this.wallIndex.visible && !this.mobile;
+    this.roadSign.visible = this.entryProgress < 0.2;
+    this.futureBoard.visible =
+      this.entryProgress > 0.99 && this.view === "presentation";
     this.mirror.userData.frame.visible = this.entryProgress > 0.9;
     this.projector.visible = this.entryProgress > 0.9;
     updateDaylight(this);
+    if (!this.sun.userData.galleryPosition)
+      this.sun.userData.galleryPosition = this.sun.position.clone();
+    this.sun.position.copy(this.sun.userData.galleryPosition);
+    this.sun.position.x += this.space ? 120 : 0;
+    this.sun.target.position.set(this.space ? 120 : 0, 0, this.space ? -2 : 0);
+    this.sun.target.updateMatrixWorld();
+    if (this.space) {
+      const outside = ["garden", "farmland", "benedum", "bellefield"].includes(
+        this.space,
+      );
+      this.sky.visible = outside && this.preferences.theme !== "dark";
+      this.clouds.visible = outside && this.preferences.clouds;
+      this.rain.visible = outside && this.preferences.rain;
+    }
+    if (this.space === "cinema") {
+      this.ambient.intensity = 0.45;
+      this.sun.intensity = 0.3;
+      this.fill.intensity = 0.25;
+      this.renderer.toneMappingExposure = 1;
+    }
+    this.clouds.position.x = this.space ? 120 : 0;
+    this.rain.position.x = this.space ? 120 : 0;
     this.doorControl.visible = this.entryProgress < 0.2;
-    const pose = cameraPose(
+    let pose = cameraPose(
       this.entryProgress,
       mobile,
       true,
       this.camera.aspect < 0.65,
     );
+    if (this.entryProgress === 1)
+      pose = roomViewPose(this.view, this.mobile, innerWidth < 600);
+    if (this.space) {
+      const outdoor = ["garden", "farmland", "benedum", "bellefield"].includes(
+        this.space,
+      );
+      const distance = outdoor
+        ? innerWidth < 600
+          ? 34
+          : 22
+        : innerWidth < 600
+          ? 18
+          : 11;
+      pose = {
+        position: [
+          120 + Math.sin(this.spaceAngle) * distance,
+          outdoor ? 8 : 4.8,
+          Math.cos(this.spaceAngle) * distance,
+        ],
+        target: [120, this.space === "bellefield" ? 5 : 3, -4],
+        fov: innerWidth < 600 ? 76 : outdoor ? 53 : 66,
+      };
+      if (this.space === "cinema" && innerWidth >= 600) {
+        pose = {
+          position: [120 + Math.sin(this.spaceAngle) * 5, 2.6, 3.8],
+          target: [120, 4.4, -7.5],
+          fov: 53,
+        };
+      }
+      if (this.spaceApproach) {
+        const t = T.MathUtils.smoothstep(
+          (now - this.spaceApproach.start) / 600,
+          0,
+          1,
+        );
+        pose.position = this.spaceApproach.position
+          .clone()
+          .lerp(new T.Vector3(120, 2.2, 1.8), t)
+          .toArray();
+        pose.target = [120, 2, -3];
+      }
+    }
     this.camera.fov = pose.fov;
     this.camera.updateProjectionMatrix();
     this.camera.position.set(...pose.position);
     this.look.set(...pose.target);
     this.camera.lookAt(this.look);
-    this.collection.cabinet.visible = true;
-    this.room.userData.portrait.visible = this.entryProgress < 0.5;
+    if (this.viewTransition && this.entryProgress === 1) {
+      const t = T.MathUtils.smoothstep(
+        (now - this.viewTransition.start) / 650,
+        0,
+        1,
+      );
+      this.camera.position.lerpVectors(
+        this.viewTransition.position,
+        this.camera.position.clone(),
+        t,
+      );
+      this.camera.quaternion.slerpQuaternions(
+        this.viewTransition.quaternion,
+        this.camera.quaternion.clone(),
+        t,
+      );
+      this.camera.fov = T.MathUtils.lerp(this.viewTransition.fov, pose.fov, t);
+      this.camera.updateProjectionMatrix();
+      if (t === 1) this.viewTransition = null;
+    }
+    this.collection.cabinet.visible = !this.space;
+    this.room.visible = !this.space;
+    if (this.space) {
+      this.wallIndex.visible = false;
+      this.wallHeading.visible = false;
+      this.roadSign.visible = false;
+      this.futureBoard.visible = false;
+      this.projector.visible = false;
+      this.mirror.userData.frame.visible = false;
+      this.roofControls.visible = false;
+      this.pedimentName.visible = false;
+    }
+    this.room.userData.portrait.visible = this.entryProgress > 0.9;
     const target = this.open ? 1 : 0;
     const previousDoorAngle = this.doorAngle;
     this.doorAngle = this.preferences.motion
-      ? lerp(this.doorAngle, target, Math.min(1, delta * 4))
+      ? T.MathUtils.clamp(
+          this.doorAngle + (Math.sign(target - this.doorAngle) * elapsed) / 650,
+          0,
+          1,
+        )
       : target;
     if (Math.abs(this.doorAngle - target) < 0.005) this.doorAngle = target;
     if (previousDoorAngle !== this.doorAngle)
@@ -890,7 +1090,7 @@ export class GalleryScene {
       hinge.rotation.y = sign * this.doorAngle * 1.75;
     });
     if (this.preferences.motion) {
-      this.clouds.position.x = Math.sin(now * 0.000035) * 2;
+      animateClouds(this.clouds, now, true);
       this.rain.position.y = -(now * 0.003) % 3;
     }
     this.animateSteam(
@@ -899,6 +1099,12 @@ export class GalleryScene {
       this.preferences.motion,
     );
     this.animate(now);
+    animateSpace(
+      this.spaceRoots.get(this.space),
+      now,
+      delta,
+      this.preferences.motion,
+    );
     // A retained inspection (active != null) is not necessarily still moving.
     const exhibitMoving =
       !!this.active &&

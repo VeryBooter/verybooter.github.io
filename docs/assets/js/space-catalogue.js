@@ -1,0 +1,86 @@
+export const spaces = [
+  {
+    id: "cabinet",
+    title: "Gallery",
+    note: "Cabinet, portrait, architecture & presentation",
+    zone: "home",
+  },
+  {
+    id: "kitchen",
+    title: "Kitchen",
+    note: "Cooking, coffee & a warm stove",
+    zone: "home",
+  },
+  {
+    id: "library",
+    title: "Library",
+    note: "Books, writing & calligraphy",
+    zone: "home",
+  },
+  {
+    id: "workshop",
+    title: "Workshop",
+    note: "Soldering bench & mechanical tools",
+    zone: "making",
+  },
+  {
+    id: "museum",
+    title: "Museum",
+    note: "Paintings, sculpture & concept models",
+    zone: "making",
+  },
+  {
+    id: "optics",
+    title: "Light room",
+    note: "Lenses, glass & moving light",
+    zone: "making",
+  },
+  {
+    id: "garden",
+    title: "Garden",
+    note: "Mountain pillars, lake & moon gate",
+    zone: "outside",
+  },
+  {
+    id: "farmland",
+    title: "Little farmland",
+    note: "Raised beds & a growing patch",
+    zone: "outside",
+  },
+  {
+    id: "cinema",
+    title: "Cinema",
+    note: "Lens Dwellers & a small stage",
+    zone: "arts",
+  },
+  {
+    id: "music",
+    title: "Music studio",
+    note: "Keys, mixing desk & listening",
+    zone: "arts",
+  },
+  {
+    id: "closet",
+    title: "Dressing room",
+    note: "Clothes & material studies",
+    zone: "arts",
+  },
+  {
+    id: "benedum",
+    title: "Benedum Hall",
+    note: "Enter the hall → SailBot workshop",
+    zone: "work",
+  },
+  {
+    id: "bellefield",
+    title: "Bellefield · Pitt SCI",
+    note: "A tower for computing & information",
+    zone: "work",
+  },
+  {
+    id: "sailbot",
+    title: "SailBot room",
+    note: "Boat, electronics & project links",
+    zone: "work",
+  },
+];

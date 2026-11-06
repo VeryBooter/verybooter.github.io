@@ -38,9 +38,14 @@ The introductory biography is in `docs/index.html`. The supplied oil portrait is
 - `docs/assets/js/building.js`: the courtyard, roof, hinged entrance, and enclosed gallery room.
 - `docs/assets/js/models.js`: procedural cabinet, robotic arm, and twelve object models.
 - `docs/assets/js/scene.js`: rendering, camera movement, raycasting, weather, and object animations.
-- `docs/assets/js/attendants.js`: articulated attendants, clothing, presentation props, walking, crouching, and two-bone reaching.
+- `docs/assets/js/attendants.js`: articulated attendants, clothing, presentation props, running, crouching, two-bone reaching, and the toss gesture.
 - `docs/assets/js/interior.js`: panoramic room mirror, projector, and folded mirror-array light path.
 - `docs/assets/js/projector.js`: presentation slide assets and playback controls.
+- `docs/assets/js/room-views.js`: cabinet, opposite-wall presentation, and bulletin-board viewpoints.
+- `docs/assets/js/space-catalogue.js`: the fourteen map destinations and their labels.
+- `docs/assets/js/spaces.js`: lazily constructed house, art, outdoor, and work spaces.
+- `docs/assets/js/weather.js`: opaque cartoon clouds with continuous drift.
+- `docs/assets/video/lens-dwellers.mp4`: the browser-ready film used by the cinema.
 - `docs/assets/js/controller.js`: navigation states and transition cancellation.
 - `docs/assets/js/main.js`: HTML interaction, fragment navigation, and scene integration.
 - `docs/assets/js/preferences.js`: safe preference storage.
@@ -51,13 +56,27 @@ Fonts are bundled locally through Fontsource. The public site does not request a
 
 ## Controls
 
-Clear, Cloudy, and Rainstorm SVG icons select weather directly on the rectangular roof beam. A moon icon opens lighting and motion settings, and a replay icon restarts the entrance. The entrance starts after scene initialization, lasts 3.7 seconds, and plays on each ordinary page load. Skip is immediately available. Reduced motion bypasses it by default.
+Clear, Cloudy, and Rainstorm SVG icons select weather directly on the rectangular roof beam. A moon icon opens lighting and motion settings, and a replay icon restarts the entrance. The entrance starts after scene initialization, lasts 450 ms, and plays on each ordinary page load. Skip is immediately available. Reduced motion bypasses it by default.
 
-Open the cabinet to select its objects directly, or use the twelve-item collection index. Most transitions last 1.5 seconds, with Skip and Cancel controls. MIPS home design uses a nine-second sequence: the robot picks up a blueprint, laser-scans it, the blueprint dissolves, house components assemble, a chip emerges from the shelf and is installed by the robot, and the roof arrives last. The mug presentation lasts 2.6 seconds and includes rising steam. Photography and the lamp are effects only, and the original face drawing is displayed directly without a story dialog. The smart-house exhibit supports house/chip inspection; the game controller opens its story after a button press. Escape cancels a transition or closes a project. Closing restores focus to the corresponding index item. A URL such as `#project/sailbot` opens its project directly. Browser Back restores the previous view.
+After the opening, the camera immediately enters the gallery and the cabinet is already open. Use its objects or the numbered index. All exhibit sequences last 750 ms, including the accelerated MIPS build, archer, and mug effects. The MIPS stages still preserve blueprint pickup, laser scan, wall assembly, chip insertion, and roof placement. Photography, the lamp, and mug are effects without a dialog; the drawing stays in the scene with a close button. Escape cancels a transition or closes an exhibit. Closing restores focus to the corresponding index item. Project links such as `#project/sailbot` bypass the opening and open the story directly.
 
 Storage denial does not prevent use. If WebGL is unavailable or its context is lost, the HTML index continues to work. JavaScript is required for project content; the introduction and GitHub contact remain available without it.
 
-Attendant presentations last 7.2 seconds: walk to the cabinet, reach for the exhibit, pick it up, return, and present a scroll, tablet, or codex. The lowest shelf uses a crouch. The archer cat draws its bowstring before releasing its arrow. Mug and lantern effects run without a transition panel or story window; the drawing closes with the red close button or Escape.
+Attendants run to the shelf, retrieve an item, and toss the scroll, tablet, or codex toward the viewer within the same 750 ms timeline. Jointed knees and elbows, shelf reaching, and crouching remain. The archer still draws and releases the arrow.
+
+The bottom navigation switches between the cabinet, the presentation on the opposite wall, the portrait bulletin board, the house map, and the courtyard. Room changes use a short camera turn; the framed portrait remains on the bulletin board. The courtyard contact sign contains the supplied LinkedIn, GitHub, and email links. Kevin and Li flank the unchanged central pediment mark.
+
+## House map and spaces
+
+The map contains the gallery, kitchen, library, workshop, museum, light room, garden, farmland, cinema, music studio, dressing room, Benedum Hall, Bellefield/Pitt SCI, and SailBot room. Rooms are built on first visit and hidden when inactive. Each room has a return route; the panel provides keyboard-accessible object selection and look-around controls. Fridge and wardrobe doors open, the music keys play a short synthesized note, museum paintings move along the wall, and the garden fountain and rotating studies animate when motion is enabled.
+
+The campus buildings and museum artifacts are stylized interpretations, not measured architectural replicas or engineering specifications. The Benedum entry moves through its doorway before transferring to the SailBot workshop. SailBot links point to the existing PittSailbot repository and website; VoxelCraft links to the supplied local repository's GitHub remote. Direct room URLs such as `#room/library` work without the opening animation.
+
+## Lens Dwellers cinema
+
+The supplied master is `docs/assets/video/Lens Dwellers (Pitt 24 Hr Film Challenge).mov`: 4K HEVC with AAC audio, 155.99 seconds. It remains local and is ignored by Git because it exceeds GitHub's ordinary file limit. The cinema publishes the H.264/AAC 1920×1080 MP4 `docs/assets/video/lens-dwellers.mp4` (about 41.7 MiB), with the original duration preserved. A Three.js video texture displays it on the cinema screen. Play/Pause and native video controls are available, and leaving the cinema pauses playback. The film is loaded on visiting the cinema rather than during the gallery opening.
+
+To regenerate the browser copy after replacing the master, remove or rename the old generated MP4, then run `bash scripts/prepare-film.sh` with ffmpeg installed. The script does not overwrite an existing output automatically.
 
 ## Projector presentation
 
@@ -113,7 +132,7 @@ In a browser console, `galleryDiagnostics()` reports navigation state, WebGL ava
 
 The courtyard roof has a triangular pediment above a rectangular beam. The mark appears on the triangle; About and Gallery replace the two Taichi eyes inside complementary halves that touch the rectangular beam’s top and bottom edges. Weather icons are on the left; Contact and the lighting/replay controls remain on the right. These are CSS3D elements attached to the rectangular beam. The doorway opens before the camera crosses the threshold and turns toward the cabinet inside. Use the return link to leave the room.
 
-The entrance writes only KL with cursive SVG strokes inspired by the Mac handwriting animation. It then draws the inner circle, draws its diameter, slides the upper shell down and the lower shell up, holds the enlarged mark, and parts the clouds. Replay is available directly through the roof replay icon and through the lighting/motion panel. Reduced motion bypasses the entrance and object transitions.
+The opening combines the KL monogram and theta-style logo in one composition. Its container occupies 75% of viewport area, and the outer halves rotate in opposite directions over 400 ms. The stem ends at the upper arc. The complete opening ends at 450 ms; reduced motion bypasses it and still enters the room with the cabinet open. Replay is available from the courtyard roof.
 
 `face-drawing.svg` preserves the 1,210 original filled vector segments from the supplied face PDF; SVGLoader tessellates those curves into scene geometry. There is no embedded raster image or manual trace. `scripts/extract-face.py` reproduces the extraction with PyMuPDF and records the source PDF SHA-256. `hackathon` remains the stable project URL identifier for Merry-Men. Rocket smoke starts at the transformed nozzle position. TNT uses two brief pure-white flashes followed by black block debris; Motion Off bypasses the effect. Popup close controls use red macOS-style circles with accessible labels.
 
@@ -134,3 +153,5 @@ PLAYWRIGHT_CHANNEL=chrome npm run test:browser -- e2e/mirror.spec.js --headed
 ```
 
 Keep the browser foregrounded during measurement. Software rendering (such as SwiftShader), background tabs, and concurrent workloads are not representative GPU performance measurements. The test reports timing rather than imposing a machine-dependent FPS assertion. On the November 5, 2026 Apple M1 Pro Chrome run at 1440×900, the idle sample contained 720 frames: median 8.3 ms, p95 9.2 ms, maximum 9.4 ms, and zero additional mirror captures. This establishes the under-18-ms idle target on that configuration, not on every device.
+
+A November 6 production-build comparison used three alternating trials per version on the same Apple M1 Pro, Chrome, and 1440×900 viewport. Across all samples, before → after average FPS was 119.9 → 118.7 idle, 119.5 → 119.9 while opening cabinet doors, and 100.4 → 110.6 while opening the drawing. These include isolated stalls; they do not demonstrate a general average-FPS improvement. The optimized idle sample had one 307.9 ms outlier, and first drawing activation stalled in both builds. A subsequent traced run of the optimized build measured 30 seconds idle, 3 seconds of door movement, and 5 seconds of drawing activation, with all sampled intervals below 18 ms (maxima 16.6, 9.4, and 9.4 ms respectively). Idle capture count stayed fixed at one completed cube. The recurring mirror workload is eliminated, but isolated browser/first-use stalls are not ruled out. Raw comparison samples and the Chrome trace are saved locally under `artifacts/browser/mirror-comparison.json` and `artifacts/browser/mirror-performance-trace.json`.

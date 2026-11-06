@@ -129,19 +129,29 @@ export const projects = [
     summary,
     description,
     animation,
-    duration:
-      id === "house"
-        ? 9000
-        : ["sailbot", "voxelcraft", "kichua"].includes(id)
-          ? 7200
-          : id === "hackathon"
-            ? 3200
-            : id === "cooking"
-              ? 2600
-              : 1500,
+    duration: 750,
     number: id === "kichua" ? "R" : String(index + 1).padStart(2, "0"),
     placeholder: true,
-    links: [],
+    links:
+      id === "sailbot"
+        ? [
+            {
+              label: "Repository",
+              href: "https://github.com/PittSailbot/Sailbot",
+            },
+            {
+              label: "SailBot website",
+              href: "https://pittsailbot.github.io/",
+            },
+          ]
+        : id === "voxelcraft"
+          ? [
+              {
+                label: "Repository",
+                href: "https://github.com/VeryBooter/voxelcraft_reconstructed2",
+              },
+            ]
+          : [],
     presentation: ["photography", "lamp", "cooking"].includes(id)
       ? "effect"
       : id === "drawing"
