@@ -106,7 +106,7 @@
         </svg>
       </button>
       <button
-        id="replay-roof"
+        id="replay-roof" hidden disabled
         class="roof-replay"
         aria-label="Replay the entrance"
         title="Replay entrance"
@@ -142,7 +142,7 @@
       <div class="control-row">
         <span>Motion</span><button id="motion" aria-pressed="true">On</button>
       </div>
-      <button id="replay" class="text-button">
+      <button id="replay" hidden disabled class="text-button">
         Replay the entrance <span aria-hidden="true">↺</span>
       </button>
     </aside>
@@ -153,7 +153,7 @@
             <span class="small-rule"></span> WELCOME TO MY LITTLE MUSEUM
           </p>
           <h1>Kevin Li<span class="title-dot">.</span></h1>
-          <p class="profile-role">Software Engineer and Physics Student</p>
+          <p class="profile-role">Student</p>
           <p class="intro-lead">
             Language Model Research<br />
             & Major League Hacking <em> .tech track winner</em>
@@ -231,6 +231,7 @@
               alt="Slide 1: Air Battle — A modernized aerial warfare with well integrated EW, C4ISR feature."
             />
           </div>
+          <p id="projected-slide-caption"></p>
           <div
             class="projection-controls"
             role="group"
@@ -391,7 +392,7 @@
       <button id="skip-entrance">Skip entrance →</button>
     </div>
     <nav id="room-navigation" aria-label="Explore the house">
-      <button data-room-view="cabinet" aria-pressed="true">Cabinet</button>
+      <button data-room-view="cabinet" aria-pressed="false">Cabinet</button>
       <button data-room-view="presentation" aria-pressed="false">
         Presentation ↻
       </button>
@@ -400,6 +401,7 @@
       </button>
       <button id="open-map">House map</button>
       <button id="visit-courtyard">Outside</button>
+      <a id="other-collection" href="/personal-website/">Personal collection ↗</a>
     </nav>
     <aside id="space-panel" hidden>
       <p class="eyebrow">EXPLORE THE HOUSE</p>

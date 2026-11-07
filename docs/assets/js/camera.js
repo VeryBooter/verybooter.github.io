@@ -13,7 +13,7 @@ export function cameraPose(progress, compact, motion = true, narrow = false) {
     {
       p: 0,
       position: compact ? [0, 7, narrow ? 49 : 38] : [0, 6.5, 22],
-      target: compact ? [0, narrow ? 20 : 17, 0] : [-0.8, 5.1, 0],
+      target: compact ? [0, 7, 0] : [0, 6.5, 0],
       fov: compact ? 55 : 38,
     },
     {

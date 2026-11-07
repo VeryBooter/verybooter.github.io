@@ -167,7 +167,7 @@ export class GalleryScene {
     this.wallHeading.scale.setScalar(0.011);
     this.scene.add(this.wallHeading);
     this.roadSign = new CSS3DObject(
-      document.querySelector(".contact-road-sign"),
+      document.createElement("div"),
     );
     this.roadSign.position.set(-7.7, 3.4, -0.8);
     this.roadSign.scale.setScalar(0.012);

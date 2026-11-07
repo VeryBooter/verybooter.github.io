@@ -27,6 +27,7 @@ test("mirror settles at idle and refreshes for doors, exhibits and daylight", as
         d.mirror.pendingFace === 0
       );
     });
+  await page.locator('button[data-room-view="cabinet"]').click();
   await settled();
   const before = await page.evaluate(
     () => galleryDiagnostics().mirror.facesRendered,

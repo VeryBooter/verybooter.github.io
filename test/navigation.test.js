@@ -134,17 +134,15 @@ test("theme, weather, and motion controls work when storage is denied", async ()
   assert.equal($("#motion").getAttribute("aria-pressed"), "true");
   dom.window.close();
 });
-test("entrance is skippable, removes background controls from focus, and replays", async () => {
+test("archived entrance never starts or replays, while its artwork remains", async () => {
   const { dom, w, $ } = await fixture("", { reduced: false });
-  assert.equal($("#entrance").hidden, false);
-  assert.equal($("main").inert, true);
-  $("#skip-entrance").click();
   assert.equal($("#entrance").hidden, true);
-  assert.equal($("main").inert, false);
-  assert.equal(w.sessionStorage.getItem("gallery.entered"), "yes");
+  assert.notEqual($("main").inert, true);
+  assert.equal(w.galleryDiagnostics().entranceEnabled, false);
+  assert.ok($(".kl-monogram"));
+  assert.equal($("#replay").disabled, true);
   $("#replay").click();
-  assert.equal($("#entrance").hidden, false);
-  $("#skip-entrance").click();
+  assert.equal($("#entrance").hidden, true);
   dom.window.close();
 });
 test("browser Back restores the previous view after opening a project", async () => {

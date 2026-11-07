@@ -10,3 +10,5 @@ npm run dev
 ```
 
 See [the customization guide](TEMPLATE.md) for content editing, controls, testing, production builds, and GitHub Pages deployment. Source lives in `docs/`; production output is generated into `dist/`.
+
+The main House of Curiosities keeps seven career/making rooms. The other seven home, arts, and leisure rooms live at `/personal-website/`. Both use one viewport with explicit room navigation. `npm run build` prepares both entry addresses for GitHub Pages.

@@ -8,6 +8,11 @@ async function ready(page, hash = "") {
   await page.goto(`/${hash}`);
   await page.waitForFunction(() => window.galleryDiagnostics?.().webgl);
   await expect(page.locator("#entrance")).toBeHidden();
+  if (!hash) {
+    await page.locator('button[data-room-view="cabinet"]').click();
+    if ((await page.locator("#doors").getAttribute("aria-pressed")) === "false")
+      await page.locator("#doors").click();
+  }
 }
 async function pause(page) {
   await page.clock.pauseAt(
@@ -29,7 +34,7 @@ for (const [name, width, height] of [
   ["tablet", 820, 1180],
   ["phone", 390, 844],
 ]) {
-  test(`${name}: automatic entry, cabinet, opposite-wall slides and bulletin portrait`, async ({
+  test(`${name}: courtyard navigation, cabinet, opposite-wall slides and bulletin portrait`, async ({
     page,
   }) => {
     test.setTimeout(120000);
@@ -136,30 +141,26 @@ test("all exhibits finish within 750 ms, close, and restore keyboard focus", asy
   }
 });
 
-test("combined KL and logo occupy a 75-percent canvas and enter automatically in 450 ms", async ({
+test("courtyard opens without the archived animation and matches front-page controls", async ({
   page,
 }) => {
-  await page.clock.install();
-  await ready(page);
-  await outside(page);
-  await pause(page);
-  await page.locator("#replay-roof").click();
-  await expect(page.locator("#entrance")).toBeVisible();
-  const area = await page.locator(".entrance-center").evaluate((e) => {
-    const r = e.getBoundingClientRect();
-    return (r.width * r.height) / (innerWidth * innerHeight);
-  });
-  expect(area).toBeCloseTo(0.75, 2);
-  await expect(page.locator(".kl-monogram")).toHaveCSS("opacity", "1");
-  await expect(page.locator(".logo-top")).toHaveAttribute("d", /V8M11 29/);
-  await page.clock.fastForward(449);
-  await expect(page.locator("#entrance")).toBeVisible();
-  await page.clock.fastForward(21);
+  await page.goto("/");
+  await page.waitForFunction(() => window.galleryDiagnostics?.().webgl);
   await expect(page.locator("#entrance")).toBeHidden();
+  await expect(page.locator("#replay-roof")).toBeHidden();
+  await expect(page.locator(".roof-weather")).toBeHidden();
+  await expect(page.locator(".intro-lead")).toBeHidden();
+  await expect(page.locator(".intro-copy")).toBeVisible();
   expect(await page.evaluate(() => galleryDiagnostics().location)).toBe(
-    "interior",
+    "courtyard",
   );
-  await expect(page.locator("#doors")).toHaveAttribute("aria-pressed", "true");
+  expect(await page.evaluate(() => galleryDiagnostics().entranceEnabled)).toBe(
+    false,
+  );
+  expect((await page.locator("#room-navigation").boundingBox()).y).toBeLessThan(
+    30,
+  );
+  await capture(page, "front-page-revised");
 });
 
 test("direct project links and browser Back preserve navigation", async ({
@@ -182,14 +183,16 @@ test("cartoon clouds visibly drift and independent weather preferences persist",
   await ready(page);
   await outside(page);
   await pause(page);
-  await page.locator('[data-condition="clouds"]').click();
+  await page.locator('[data-condition="clouds"]').evaluate((el) => el.click());
   const before = await page.evaluate(() => galleryDiagnostics().cloudPositions);
   await page.clock.fastForward(1000);
   const after = await page.evaluate(() => galleryDiagnostics().cloudPositions);
   expect(after[0][0]).not.toBe(before[0][0]);
-  await page.locator('[data-condition="rain"]').click();
-  await page.locator('[data-condition="thunder"]').click();
-  await page.locator("#sky-phase").click();
+  await page.locator('[data-condition="rain"]').evaluate((el) => el.click());
+  await page.locator('[data-condition="thunder"]').evaluate((el) => el.click());
+  await page.locator(".settings-toggle").click();
+  await page.locator('[data-theme="dark"]').click();
+  await page.locator("#close-atmosphere").click();
   expect(
     await page.evaluate(() => galleryDiagnostics().preferences),
   ).toMatchObject({ clouds: true, rain: true, thunder: true, theme: "dark" });

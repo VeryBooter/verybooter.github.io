@@ -2303,3 +2303,72 @@ body:not(.no-webgl) .intro .intro-copy, body:not(.no-webgl) .portrait-caption { 
 /* Inspection actions must clear the persistent room navigation on every viewport. */
 #exhibit-actions { bottom: max(92px, calc(env(safe-area-inset-bottom) + 78px)); z-index: 36; }
 @media(max-width: 600px) { #exhibit-actions { width: calc(100% - 24px); flex-wrap: wrap; gap: 8px 12px; padding: 12px; } #preview-title { font-size: 16px; } }
+
+/* Front-page revision: marked items are retained but removed from presentation. */
+#entrance, #replay, #replay-roof, .roof-controls .roof-weather,
+.roof-controls nav > a[href="#contact"], .intro-lead, .intro-footnote,
+.intro-copy .primary-link, .portrait-caption, #contact footer { display: none !important; }
+#room-navigation { top: max(12px, env(safe-area-inset-top)); bottom: auto; }
+#space-panel { top: 86px; }
+body:not(.no-webgl) .intro-copy { position: fixed; left: 19%; top: 36%; width: 25%; max-width: 370px; margin: 0; padding: 22px; transform: none; background: #f5eedde8; border: 1px solid #c5b18b; border-radius: 8px; visibility: visible; }
+.intro-copy h1 { font-size: clamp(32px, 4.5vw, 68px); line-height: 1.1; margin: 12px 0; }
+.intro-copy .eyebrow { font-size: 10px; line-height: 1.5; margin: 0; }
+.intro-copy .profile-role { font-size: 14px; margin: 0 0 16px; }
+.intro-copy .intro-body { font-size: 13px; line-height: 1.6; margin: 12px 0 0; }
+body:not(.no-webgl) #contact { position: fixed; left: 2%; top: 48%; width: 170px; height: auto; min-height: 0; padding: 0; margin: 0; z-index: 20; background: transparent; }
+.contact-road-sign { width: 100%; margin: 0; padding-bottom: 50px; }
+.contact-road-sign .eyebrow { display: none; }
+.contact-road-sign h2 { position: static; font-size: 25px; line-height: 1.2; margin: 0 0 14px; padding: 6px; background: #f5eedde8; }
+.contact-road-sign a { padding: 12px; font-size: 12px; margin: 9px 0; }
+body:not([data-location="courtyard"]):not(.no-webgl) #contact,
+body:not([data-location="courtyard"]):not(.no-webgl) .intro-copy { visibility: hidden; pointer-events: none; }
+@media(max-width: 1000px) {
+ body:not(.no-webgl) .intro-copy { left: 12px; top: auto; bottom: 70px; width: 40%; max-width: 310px; padding: 14px; }
+ body:not(.no-webgl) #contact { left: auto; right: 12px; top: auto; bottom: 70px; width: 160px; }
+ .intro-copy .intro-body { font-size: 11px; }
+}
+@media(max-width: 600px) {
+ #room-navigation { top: 8px; bottom: auto; }
+ #space-panel { top: 68px; }
+ body:not(.no-webgl) .intro-copy { bottom: 60px; width: 46%; padding: 10px; }
+ body:not(.no-webgl) #contact { bottom: 60px; width: 140px; }
+ .intro-copy .intro-body { display: none; }
+ .intro-copy h1 { font-size: 30px; }
+ .intro-copy .profile-role { margin: 0; }
+ .contact-road-sign h2 { font-size: 20px; }
+ .contact-road-sign a { padding: 8px; font-size: 10px; }
+ .contact-road-sign { padding-bottom: 20px; }
+}
+
+.contact-road-sign h2 { display: block; }
+
+/* One viewport: room navigation replaces the former three scrolling sections. */
+html, body { height: 100%; overflow: hidden; overscroll-behavior: none; }
+main { height: 100dvh; overflow: hidden; }
+main > .section { position: absolute; inset: 0; height: 100%; min-height: 0; margin: 0; }
+.scroll-cue { display: none !important; }
+.intro-copy, .scene-caption, .contact-road-sign, .gallery-heading, .collection-index,
+#space-panel, #project-dialog, #future-board, #house-map {
+  pointer-events: auto; -webkit-user-select: text; user-select: text;
+}
+:is(.intro-copy, .contact-road-sign, #space-panel, #project-dialog, #house-map) :is(p,h1,h2,h3,span,a) {
+  -webkit-user-select: text; user-select: text;
+}
+::selection { color: #172a22; background: #ead099; }
+body.no-webgl #gallery { overflow: auto; padding-top: 80px; }
+body.no-webgl .introduction, body.no-webgl #contact { display: none; }
+
+#room-navigation { flex-wrap: wrap; justify-content: center; }
+#room-navigation > a { display: flex; align-items: center; padding: 10px 15px; border-left: 1px solid #bba477; color: #334d41; font-size: 12px; text-decoration: none; }
+body[data-collection="personal"] #room-navigation button[data-room-view],
+body[data-collection="personal"] #visit-courtyard { display: none; }
+@media(max-width: 600px) { #room-navigation > a { padding: 8px; font-size: 10px; } }
+
+/* Cream information panels retain readable contrast in both lighting modes. */
+body:not(.no-webgl) .intro-copy { left: 18%; width: 23%; color: #263c30; }
+.intro-copy :is(.intro-body,.profile-role) { color: #4b554e; }
+.contact-road-sign h2 { color: #263c30; }
+#pediment-name { pointer-events: auto; -webkit-user-select: text; user-select: text; }
+#projected-slide-caption { margin: 0; padding: 10px 16px; font: 18px/1.5 "DM Sans",sans-serif; color: #263c30; background: #f5efdf; user-select: text; }
+@media(max-width:1000px) { body:not(.no-webgl) .intro-copy { left: 12px; width: 40%; } }
+@media(max-width:600px) { body:not(.no-webgl) .intro-copy { width: 46%; } }

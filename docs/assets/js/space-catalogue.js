@@ -84,3 +84,20 @@ export const spaces = [
     zone: "work",
   },
 ];
+
+// The two collections share models but have disjoint room navigation.
+export const careerRoomIds = [
+  "cabinet",
+  "workshop",
+  "museum",
+  "optics",
+  "benedum",
+  "bellefield",
+  "sailbot",
+];
+export function collectionForRoom(id) {
+  return careerRoomIds.includes(id) ? "career" : "personal";
+}
+export function roomsForCollection(collection) {
+  return spaces.filter((room) => collectionForRoom(room.id) === collection);
+}

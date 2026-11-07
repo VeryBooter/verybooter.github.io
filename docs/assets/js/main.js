@@ -1,10 +1,39 @@
-import { spaces } from "./space-catalogue.js";
+import {
+  spaces as allSpaces,
+  roomsForCollection,
+  collectionForRoom,
+} from "./space-catalogue.js";
 import { mountProjector } from "./projector.js";
 import { projects, getProject, projectFromHash } from "./catalogue.js";
 import { GalleryController } from "./controller.js";
 import { safeRead, safeWrite, readPreferences } from "./preferences.js";
 
 const $ = (selector) => document.querySelector(selector);
+const collection = location.pathname.startsWith("/personal-website")
+  ? "personal"
+  : "career";
+const spaces = roomsForCollection(collection);
+document.body.dataset.collection = collection;
+const collectionLink = $("#other-collection");
+collectionLink.href = collection === "personal" ? "/" : "/personal-website/";
+collectionLink.textContent =
+  collection === "personal"
+    ? "House of Curiosities ↗"
+    : "Personal collection ↗";
+if (collection === "personal") {
+  document.title = "Kevin Li · Personal collection";
+  $("#open-map").textContent = "Personal rooms";
+  $("#map-title").textContent = "Personal collection";
+  $("#house-map .eyebrow").textContent = "ARTS, HOME & EVERYDAY LIFE";
+}
+function routeToRoomCollection(id) {
+  const destination = collectionForRoom(id);
+  if (destination === collection) return false;
+  location.replace(
+    `${destination === "personal" ? "/personal-website/" : "/"}#room/${id}`,
+  );
+  return true;
+}
 mountProjector();
 const filmSource = new URL("../video/lens-dwellers.mp4", import.meta.url).href;
 let local, session;
@@ -21,6 +50,7 @@ const entrance = $("#entrance");
 const index = $("#project-index");
 const gallery = $("#gallery");
 let scene;
+let locationProgress = 0;
 let entranceTimer;
 let entranceHideTimer;
 let previousFocus;
@@ -238,7 +268,7 @@ function openProject(id, { fromRoute = false, animate = true } = {}) {
     cabinetOpen = true;
     updateDoors();
   }
-  gallery.scrollIntoView({ behavior: "instant", block: "start" });
+  setLocationProgress(1);
   updateScroll();
   if (!fromRoute && project.presentation !== "effect") {
     history.pushState({ galleryProject: true }, "", `#project/${id}`);
@@ -417,7 +447,7 @@ function arriveInside() {
         String(button.dataset.roomView === "cabinet"),
       ),
     );
-  gallery.scrollIntoView({ behavior: "instant", block: "start" });
+  setLocationProgress(1);
   scene?.snapInside();
   scene?.setView("cabinet", false);
   cabinetOpen = true;
@@ -430,7 +460,7 @@ function arriveInside() {
   $("#doors").focus({ preventScroll: true });
 }
 function enterGallery() {
-  gallery.scrollIntoView({ behavior: "instant", block: "start" });
+  setLocationProgress(1);
   updateScroll();
   scene?.setProgress(1);
   if (scene) document.body.dataset.location = "entering";
@@ -442,7 +472,7 @@ function changeRoomView(view) {
   $("#space-panel").hidden = true;
   document.body.dataset.space = "gallery";
   if (controller.activeId) closeProject();
-  gallery.scrollIntoView({ behavior: "instant", block: "start" });
+  setLocationProgress(1);
   scene?.snapInside();
   scene?.setView(view);
   document.body.dataset.roomView = view;
@@ -467,27 +497,31 @@ for (const link of document.querySelectorAll('a[href="#contact"]'))
     $("#visit-courtyard").click();
   });
 $("#visit-courtyard").addEventListener("click", () => {
+  document
+    .querySelectorAll("button[data-room-view]")
+    .forEach((button) => button.setAttribute("aria-pressed", "false"));
   if (controller.activeId) closeProject();
   $("#film-video").pause();
   scene?.openSpace("cabinet");
   $("#space-panel").hidden = true;
   document.body.dataset.space = "gallery";
   scene?.setView("cabinet", false);
-  $("#about").scrollIntoView({ behavior: "instant" });
+  setLocationProgress(0);
   scene?.setProgress(0);
 });
 $("#open-map").addEventListener("click", () => $("#house-map").showModal());
 $("#close-map").addEventListener("click", () => $("#house-map").close());
 let travelTimer;
 function visitSpace(id, fromRoute = false) {
-  if (!spaces.some((space) => space.id === id)) return;
+  if (!allSpaces.some((space) => space.id === id) || routeToRoomCollection(id))
+    return;
   clearTimeout(travelTimer);
   if (controller.activeId) closeProject();
   $("#house-map").close();
   $("#film-video").pause();
   if (!fromRoute)
     history.pushState(null, "", id === "cabinet" ? "#gallery" : `#room/${id}`);
-  gallery.scrollIntoView({ behavior: "instant" });
+  setLocationProgress(1);
   scene?.openSpace(id);
   document.body.dataset.space = id === "cabinet" ? "gallery" : id;
   document.body.dataset.location = "interior";
@@ -599,27 +633,24 @@ $("#close-atmosphere").addEventListener("click", () => {
   $(".settings-toggle").setAttribute("aria-expanded", "false");
   $(".settings-toggle").focus();
 });
-function updateScroll() {
-  const progress = Math.max(
-    0,
-    Math.min(
-      1,
-      (scrollY - gallery.offsetTop + innerHeight * 0.65) / (innerHeight * 0.85),
-    ),
-  );
-  scene?.setProgress(progress);
-  if (!["entrance", "transition", "detail"].includes(controller.state))
-    controller.state = progress > 0.5 ? "gallery" : "introduction";
-}
-window.addEventListener("scroll", updateScroll, { passive: true });
-window.addEventListener("resize", () => {
-  // Changing viewport height must not turn a room visit into an exit animation.
-  if (scene?.location === "interior") {
-    gallery.scrollIntoView({ behavior: "instant", block: "start" });
-    scene.snapInside();
-  }
+// Navigation changes the scene in one viewport; document scrolling never changes rooms.
+function setLocationProgress(progress) {
+  locationProgress = progress;
   updateScroll();
+}
+function updateScroll() {
+  scene?.setProgress(locationProgress);
+  if (!["entrance", "transition", "detail"].includes(controller.state))
+    controller.state = locationProgress === 1 ? "gallery" : "introduction";
+}
+window.addEventListener("resize", () => {
+  if (locationProgress === 1) scene?.snapInside();
 });
+for (const link of document.querySelectorAll('a[href="#about"]'))
+  link.addEventListener("click", (event) => {
+    event.preventDefault();
+    $("#visit-courtyard").click();
+  });
 function setEntranceInert(inert) {
   for (const target of [
     $("#room-navigation"),
@@ -644,8 +675,10 @@ function finishEntrance() {
   if (wasPlaying) arriveInside();
   else if (restoreFocus) $("#roof-about").focus({ preventScroll: true });
 }
+// Archived opening: retain the implementation, but never run it in the live site.
+const OPENING_ENABLED = false;
 function playEntrance() {
-  if (!preferences.motion) return;
+  if (!OPENING_ENABLED || !preferences.motion) return;
   window.scrollTo({ top: 0, behavior: "instant" });
   clearTimeout(entranceTimer);
   clearTimeout(entranceHideTimer);
@@ -686,10 +719,12 @@ $("#collection-range").textContent = `01 — ${projects.length}`;
 applyPreferences();
 $("#year").textContent = new Date().getFullYear();
 document.body.dataset.location = "courtyard";
-const initialRoom = spaces.find(
+const initialRoom = allSpaces.find(
   (space) => `#room/${space.id}` === location.hash,
 )?.id;
 const initialProject = projectFromHash(location.hash);
+if (initialProject && collection === "personal")
+  location.replace(`/#project/${initialProject.id}`);
 if (initialProject)
   openProject(initialProject.id, { fromRoute: true, animate: false });
 
@@ -732,16 +767,14 @@ try {
   console.warn("Gallery fallback:", error);
   handleFailure();
 }
-// Start only after the renderer/import has finished, so setup cannot consume the opening.
+// The opening is sealed for safekeeping. Start directly on the courtyard.
 if (initialRoom) visitSpace(initialRoom, true);
-if (!initialProject && !initialRoom && preferences.motion) {
-  await document.fonts?.ready;
-  // Let shader compilation and the first canvas paint finish before starting the clock.
-  await new Promise((resolve) =>
-    window.requestAnimationFrame(() => window.requestAnimationFrame(resolve)),
-  );
-  playEntrance();
-} else if (!initialProject && !initialRoom) arriveInside();
+else if (collection === "personal") visitSpace("library", true);
+if (!initialProject && !initialRoom && collection === "career") {
+  entrance.hidden = true;
+  setEntranceInert(false);
+  document.body.dataset.location = "courtyard";
+}
 $("#replay-roof").addEventListener("click", () => $("#replay").click());
 document.addEventListener("visibilitychange", () => {
   if (document.hidden) scene?.pause();
@@ -749,7 +782,14 @@ document.addEventListener("visibilitychange", () => {
 });
 // A small read-only diagnostics surface supports repeatable runtime QA.
 window.galleryDiagnostics = () => ({
-  entranceDuration: 450,
+  collection,
+  availableRooms: spaces.map((room) => room.id),
+  skyMark: scene?.sky.userData.celestial.userData.moonMark.visible
+    ? "crescent-moon"
+    : "radiant-sun",
+  cameraRotation: scene?.camera.rotation.toArray().slice(0, 3),
+  entranceEnabled: OPENING_ENABLED,
+  entranceDuration: OPENING_ENABLED ? 450 : 0,
   exhibitDuration: Math.max(...projects.map((project) => project.duration)),
   cloudPositions:
     scene?.clouds.children.map((cloud) => cloud.position.toArray()) || [],

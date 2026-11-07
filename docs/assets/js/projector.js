@@ -22,6 +22,7 @@ export function mountProjector() {
     $("projected-slide").src = slide.image;
     $("projected-slide").alt =
       `Slide ${index + 1}: ${slide.title} — ${slide.description}`;
+    $("projected-slide-caption").textContent = `${slide.title} — ${slide.description}`;
     $("slide-count").textContent = `${index + 1} / ${slides.length}`;
   };
   const step = (delta) => {

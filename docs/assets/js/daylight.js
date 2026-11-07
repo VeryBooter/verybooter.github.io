@@ -31,12 +31,57 @@ export function buildDaylight(scene, sun) {
   sun.shadow.bias = -0.00008;
   sun.shadow.radius = 3;
   sun.shadow.camera.updateProjectionMatrix();
-  const celestial = new T.Mesh(
-    new T.SphereGeometry(2.3, 32, 24),
-    new T.MeshBasicMaterial({ color: "#fff3c6", fog: false }),
-  );
+  // Distinct ornamental silhouettes remain in the sky: a radiant sun and a true crescent.
+  const celestial = new T.Group();
   celestial.name = "sun-or-moon";
   celestial.position.set(28, 29, -65);
+  const sunMark = new T.Group();
+  sunMark.name = "radiant-sun";
+  const gold = new T.MeshBasicMaterial({ color: "#ffdc8c", fog: false });
+  sunMark.add(new T.Mesh(new T.CircleGeometry(1.45, 64), gold));
+  sunMark.add(new T.Mesh(new T.TorusGeometry(1.7, 0.055, 8, 64), gold));
+  for (let i = 0; i < 16; i++) {
+    const a = (i * Math.PI) / 8;
+    const ray = new T.Mesh(
+      new T.ConeGeometry(0.15, i % 2 ? 0.55 : 0.85, 4),
+      gold,
+    );
+    ray.position.set(Math.sin(a) * 2.12, Math.cos(a) * 2.12, 0);
+    ray.rotation.z = -a;
+    sunMark.add(ray);
+  }
+  const moonMark = new T.Group();
+  moonMark.name = "crescent-moon";
+  const shape = new T.Shape();
+  shape.moveTo(0.65, 2.1);
+  shape.bezierCurveTo(-2.7, 2.1, -2.7, -2.1, 0.65, -2.1);
+  shape.bezierCurveTo(-0.9, -1.15, -0.9, 1.15, 0.65, 2.1);
+  const silver = new T.MeshBasicMaterial({
+    color: "#e1ebff",
+    fog: false,
+    side: T.DoubleSide,
+  });
+  moonMark.add(
+    new T.Mesh(
+      new T.ExtrudeGeometry(shape, {
+        depth: 0.12,
+        bevelEnabled: false,
+        curveSegments: 48,
+      }),
+      silver,
+    ),
+  );
+  for (const [x, y, r] of [
+    [1.2, 0.9, 0.15],
+    [1.8, -0.4, 0.09],
+  ]) {
+    const star = new T.Mesh(new T.OctahedronGeometry(r), silver);
+    star.position.set(x, y, 0);
+    moonMark.add(star);
+  }
+  celestial.add(sunMark, moonMark);
+  celestial.userData.sunMark = sunMark;
+  celestial.userData.moonMark = moonMark;
   scene.add(celestial);
   sky.userData.celestial = celestial;
   const lightning = new T.Group();
@@ -112,8 +157,9 @@ export function updateDaylight(engine) {
   engine.rain.visible = !!engine.preferences.rain && inside < 1;
   const { celestial, lightning } = engine.sky.userData;
   celestial.visible = inside < 1;
-  celestial.material.color.set(dark ? "#d8e3f5" : "#fff3bb");
-  celestial.scale.setScalar(dark ? 0.8 : 1);
+  celestial.userData.sunMark.visible = !dark;
+  celestial.userData.moonMark.visible = dark;
+  celestial.lookAt(engine.camera.position);
   lightning.visible = !!engine.preferences.thunder && inside < 1;
   // Slow distant glow, never a full-screen lightning flash.
   lightning.children.forEach(
